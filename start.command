@@ -11,6 +11,5 @@ if [ ! -x .venv/bin/python ]; then
 fi
 if ! .venv/bin/python -c 'import notebooklm' >/dev/null 2>&1; then
   .venv/bin/python -m pip install -r requirements.txt
-  .venv/bin/python -m playwright install chromium
 fi
 exec .venv/bin/python voice_notebook.py --open

@@ -5,6 +5,8 @@ Start with an issue that describes the problem and the smallest useful change. A
 Follow the setup steps in the README, then run:
 
 ```sh
+.venv/bin/python -m pip install -r requirements-dev.txt
+.venv/bin/python -m playwright install chromium
 .venv/bin/python -m unittest discover -s tests -v
 ```
 

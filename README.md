@@ -41,7 +41,7 @@ git clone https://github.com/Edyx0/voiceNotebook.git
 cd voiceNotebook
 brew install ffmpeg
 python3 -m venv .venv
-.venv/bin/python -m pip install -r requirements-dev.txt
+.venv/bin/python -m pip install -r requirements-build.txt
 bash mac/build.sh
 mkdir -p ~/Applications
 ditto dist/voiceNotebook.app ~/Applications/voiceNotebook.app
@@ -90,10 +90,12 @@ A confirmed image-processing failure can use local OCR/PDF recovery. OCR may con
 Plain HTML, CSS and JavaScript run inside an AppKit `WKWebView`. Python owns the queue and uploads; Apple Vision owns local recognition. There is no frontend build step.
 
 ```sh
+.venv/bin/python -m pip install -r requirements-dev.txt
+.venv/bin/python -m playwright install chromium
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-Tests generate media and use temporary app and session storage. Browser tests cover setup, permissions, sign-in transitions, calendar edits, review and uploads through isolated adapters. No real Google account is required. Optional native timetable OCR fixtures use `TIMETABLE_TEST_IMAGE`.
+The optional browser download is for automated development tests only; it is not included in the app or needed to use it. Tests generate media and use temporary app and session storage. Browser tests cover setup, permissions, sign-in transitions, calendar edits, review and uploads through isolated adapters. No real Google account is required. Optional native timetable OCR fixtures use `TIMETABLE_TEST_IMAGE`.
 
 GitHub Actions builds the Mac app and runs the tests. See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md).
 
