@@ -41,6 +41,15 @@ label,.hint,label small{font-size:13px}summary{font-size:13px}
 .calendar-event.has-recording{background:var(--surface)!important;box-shadow:none;border-left-color:var(--muted)}
 .calendar-event.current-class{background:oklch(.96 .055 110)!important;box-shadow:none;border-color:oklch(.80 .10 110)}
 .calendar-event strong{font-size:14px;font-weight:600}.calendar-event>span,.calendar-event .recording-mark{font-size:11px}
+.calendar-event{justify-content:center;padding:6px 10px;gap:2px;line-height:1.15}
+.calendar-event .recording-mark{margin-top:0}
+.calendar-event.movable{cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none}
+.calendar-event.dragging{opacity:.55;cursor:grabbing}
+.calendar-drop-preview{position:absolute;left:3px;right:3px;z-index:3;display:flex;align-items:center;padding:8px;border:1px dashed var(--charcoal);border-radius:5px;background:oklch(.96 .055 110 / .9);font-size:11px;pointer-events:none}
+.calendar-event.compact-event{padding:3px 6px;gap:0}
+.calendar-event.compact-event strong,.calendar-event.compact-event>span,.calendar-event.compact-event .recording-mark{font-size:10px;line-height:1.05}
+.quiet-settings .check{align-items:center}
+.quiet-settings .check input{padding:0;margin:0;flex:0 0 15px}
 .calendar-event.past-class:not(.has-recording){opacity:1;color:var(--muted)}
 .calendar-controls{font-size:13px}.week-controls button,.week-controls select{border:1px solid var(--line);border-radius:5px;min-height:32px}
 .week-controls select{font-size:13px}.help-button{width:18px;height:18px;font-size:11px}
