@@ -22,10 +22,11 @@ class GooglePopupUITests(unittest.TestCase):
             env = {**os.environ, 'VOICE_NOTEBOOK_HOME': tmp + '/data', 'NOTEBOOKLM_HOME': tmp + '/google'}
             process = subprocess.Popen([sys.executable, str(ROOT / 'voice_notebook.py'), '--port', '0', '--ready-file', str(ready)], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             try:
-                for _ in range(100):
-                    if ready.exists():
+                for _ in range(600):
+                    if ready.exists() or process.poll() is not None:
                         break
                     time.sleep(.05)
+                self.assertTrue(ready.exists(), f'Local service did not start (exit {process.poll()})')
                 url = json.loads(ready.read_text())['url']
                 with urllib.request.urlopen(url + '/api/state') as response:
                     state = json.load(response)
@@ -65,4 +66,8 @@ class GooglePopupUITests(unittest.TestCase):
                     browser.close()
             finally:
                 process.terminate()
-                process.wait(timeout=10)
+                try:
+                    process.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait(timeout=5)

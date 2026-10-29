@@ -30,10 +30,11 @@ class LibraryUITests(unittest.TestCase):
             process = subprocess.Popen([sys.executable, str(ROOT / 'voice_notebook.py'), '--port', '0', '--ready-file', str(ready)],
                 env={**os.environ, 'VOICE_NOTEBOOK_HOME': str(root / 'data'), 'NOTEBOOKLM_HOME': str(root / 'google')}, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             try:
-                for _ in range(100):
-                    if ready.exists():
+                for _ in range(600):
+                    if ready.exists() or process.poll() is not None:
                         break
                     time.sleep(.05)
+                self.assertTrue(ready.exists(), f'Local service did not start (exit {process.poll()})')
                 url = json.loads(ready.read_text())['url']
 
                 def state():
@@ -103,7 +104,11 @@ class LibraryUITests(unittest.TestCase):
                 self.assertEqual({p.name: p.read_bytes() for p in audio.iterdir()}, original_bytes)
             finally:
                 process.terminate()
-                process.wait(timeout=10)
+                try:
+                    process.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait(timeout=5)
 
 
 if __name__ == '__main__':
