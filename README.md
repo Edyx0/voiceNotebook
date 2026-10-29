@@ -26,7 +26,7 @@ A local lecture library for your Mac. Match recordings to a timetable, then send
 
 ## Requirements
 
-A Mac, Python 3.10 or newer, Xcode Command Line Tools, and FFmpeg. The build targets the architecture of your Mac: Apple silicon or Intel.
+A Mac running macOS 13 or newer, Python 3.10 or newer, Xcode Command Line Tools, and FFmpeg. The build targets the architecture of your Mac: Apple silicon or Intel.
 
 NotebookLM uploads require an internet connection and a Google account with NotebookLM access. Local matching, review and playback do not require a hosted service from this project.
 
