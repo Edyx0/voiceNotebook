@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>voiceNotebook</title><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/photos.css"><link rel="stylesheet" href="/mac.css"><link rel="stylesheet" href="/calendar.css"><link rel="stylesheet" href="/home.css"><link rel="stylesheet" href="/access.css"><script src="/app.js" defer></script><script src="/calendar.js" defer></script><script src="/photos.js" defer></script><script src="/home.js" defer></script>
+<link rel="stylesheet" href="/studio.css">
+</head><body>
+<header>
+  <a class="brand" href="/" aria-label="voiceNotebook home"><svg aria-hidden="true" viewBox="0 0 40 40" fill="none"><rect x="6" y="5" width="28" height="31" rx="4" stroke="currentColor" stroke-width="2.5"/><path d="M13 5v31M20 24v-8M25 27V13M30 22v-4" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><path d="M6 11h7" stroke="#D9302E" stroke-width="4"/></svg><span>voiceNotebook</span></a>
+  <div class="header-actions"><button id="continue-onboarding" class="settings-shortcut" hidden>Continue setup</button><button id="open-settings" class="settings-shortcut" aria-label="Open Settings">Settings…</button><button class="connection-shortcut" id="connection-shortcut" hidden><span id="connection-light" aria-hidden="true"></span><span id="connection-label">NotebookLM offline</span><span aria-hidden="true">↗</span></button></div>
+</header>
+<main>
+<nav id="workspace-nav" aria-label="Workspace" hidden><button class="tab active" data-view="home" aria-pressed="true">This week</button><button class="tab" data-view="recordings" aria-pressed="false">Recordings <span id="count">0</span></button><button class="tab" data-view="setup" aria-pressed="false">Timetable & setup</button></nav>
+<div id="notice" role="status" aria-live="polite" hidden></div>
+<section id="access-gate" class="access-gate" aria-labelledby="access-gate-title"><div class="gate-icon" aria-hidden="true">♫</div><h1 id="access-gate-title">Connect your recordings</h1><p>Allow Voice Memos access or choose a folder of exported audio in Settings to get started.</p><button id="gate-settings" class="secondary">Open Settings…</button><span id="access-gate-status" role="status">Checking access…</span></section>
+<section id="home-view" aria-label="This week" hidden>
+  <div class="toolbar"><div><h1 id="home-title">This week</h1><p id="home-current"></p></div><button id="home-import" class="secondary">Set up timetable</button></div>
+  <div class="home-progress"><span id="home-coverage"></span><span id="home-captured"></span><span data-help="Matched counts past classes with a recording. Audio coverage measures recorded minutes inside those classes. Overlapping recordings count once; future and current classes are excluded."></span></div>
+  <div id="home-calendar" role="region" aria-label="Current week calendar"></div>
+</section>
+<section id="recordings-view" aria-label="Recording library" hidden>
+  <div class="toolbar"><div><h1>Recordings</h1><p id="queue-description">Your Voice Memos library.</p></div><div class="actions"><button id="scan" class="secondary">Scan recordings</button><button id="sync" class="primary">Convert & upload <span aria-hidden="true">↗</span></button></div></div>
+  <span id="source-label" hidden>Voice Memos</span>
+  <button id="open-setup" hidden>Set up timetable</button>
+  <div class="filters" role="group" aria-label="Filter recordings"><button class="filter selected" data-filter="all">All recordings</button><button class="filter" data-filter="ready">Ready</button><button class="filter" data-filter="review">Needs review</button><button class="filter" data-filter="uploaded">Uploaded</button><button class="filter" data-filter="error">Errors</button></div>
+  <div class="column-head" aria-hidden="true"><span>Recording</span><span>Notebook</span><span>Status</span><span></span></div>
+  <div id="recording-list" class="recording-list"><div class="empty"><h2>No recordings yet.</h2><p>Scan Voice Memos or choose a folder of exported audio.<br>M4A and QTA files are converted automatically.</p></div></div>
+</section>
+<section id="setup-view" aria-label="Timetable and settings" hidden>
+  <form id="setup-form" novalidate>
+    <div class="toolbar calendar-title"><h1>Timetable</h1><div class="actions"><button id="import-timetable" type="button" class="secondary">Import photo…</button><input id="timetable-image" type="file" accept="image/*,.heic,.heif" hidden><button id="add-slot" type="button" class="primary">+ Class</button></div></div>
+    <div id="timetable-import-status" role="status" aria-live="polite" hidden></div><details id="timetable-detected" hidden><summary>Detected text</summary><pre id="timetable-text"></pre></details>
+    <div class="calendar-controls"><div class="week-controls"><button id="previous-week" type="button" aria-label="Previous week">‹</button><select id="calendar-week" aria-label="Week"></select><button id="next-week" type="button" aria-label="Next week">›</button></div><span id="calendar-draft"></span><span class="calendar-legend"><span aria-hidden="true">●</span> Recording</span></div>
+    <div id="weekly-calendar" role="region" aria-label="Weekly timetable"></div><div id="incomplete-classes"></div>
+    <div id="lecture-slots" hidden></div>
+    <input id="week-one" type="hidden"><input id="semester-weeks" type="hidden"><input id="prefix" type="hidden"><input id="folder" type="hidden">
+    <details id="semester-settings" class="quiet-settings"><summary>Settings</summary><div class="fields">
+      <label>Timezone<input id="timezone" placeholder="Europe/Istanbul" required></label>
+      <label>Early start allowance (minutes)<input id="tolerance" type="number" min="0" max="60" required></label>
+      <label class="check wide"><input id="auto-sync" type="checkbox"><span>Automatic sync</span></label>
+    </div></details>
+    <div class="save-bar"><span id="save-help"></span><button type="submit" class="primary">Save setup</button></div>
+  </form>
+</section>
+<section id="connection-view" aria-label="NotebookLM connection" hidden>
+  <div class="section-heading"><h1>NotebookLM</h1></div>
+  <p class="connection-intro">Your lectures, organised by course and week. Recordings from the same week go into the same notebook.</p>
+  <details class="connection-help"><summary>How NotebookLM works</summary><p>Sign in with Google in a separate browser window. The window closes and voiceNotebook verifies the connection automatically. Your session stays on this Mac; this primary flow does not import your default browser’s cookies. An unofficial NotebookLM client creates notebooks and uploads sources. Google may occasionally require you to sign in again.</p><p>Audio is converted to MP3 and split below 200 MB when needed. Class photos are sent only after your approval.</p></details>
+  <div class="connection-panel"><div class="connection-state"><span id="auth-indicator" aria-hidden="true"></span><div><h2 id="auth-title">Not connected</h2><p id="connection">Checking connection status…</p></div></div><div class="actions"><button id="check-connection" class="secondary">Check connection</button><button id="login" class="primary">Sign in with Google ↗</button></div></div>
+  <button id="show-data" class="text-button native-only" hidden>Show local files ↗</button>
+</section>
+<footer><span id="activity">MANUAL SYNC</span></footer>
+</main>
+<dialog id="settings-dialog" aria-labelledby="settings-title">
+  <section id="settings-content" class="settings-content">
+    <div class="settings-heading"><h1 id="settings-title">Settings</h1><button id="settings-close" type="button" aria-label="Close Settings">Done</button></div>
+    <button id="restart-onboarding" type="button">Quick start…</button>
+    <h2>NotebookLM</h2>
+    <div class="settings-group"><div class="settings-row"><span id="settings-google-status" class="settings-status" role="status">Not connected</span><button id="settings-login" type="button">Sign in with Google</button></div></div>
+    <h2>Recordings</h2>
+    <div class="settings-group">
+      <div class="settings-row"><div><strong>Voice Memos</strong><span id="voice-access-state" class="settings-status">Checking…</span></div><button id="voice-grant" aria-describedby="voice-access-help">Open Full Disk Access…</button></div>
+      <p id="voice-access-help" class="settings-help">To find new Voice Memos automatically, voiceNotebook needs Full Disk Access to read Apple’s protected recordings folder. macOS has no separate Voice Memos permission. Originals are never changed or deleted.</p>
+      <p class="settings-help native-only" hidden>Enable voiceNotebook in Privacy &amp; Security → Full Disk Access, then quit and reopen the app. If it is missing, use + to add ~/Applications/voiceNotebook.app.</p>
+    </div>
+    <p class="settings-caption">Prefer not to grant Full Disk Access? Export recordings to a regular folder and select it below.</p>
+    <form id="source-path-form" class="settings-group">
+      <label for="source-path-input">Recordings folder</label>
+      <input id="source-path-input" placeholder="~/Music/Exported Recordings" required aria-describedby="source-path-help" spellcheck="false" autocomplete="off">
+      <div class="settings-row folder-actions"><span id="access-summary" class="settings-status" role="status"></span><div><button id="source-folder" type="button">Choose…</button><button id="source-path-save" type="submit">Save Folder</button></div></div>
+      <p id="source-path-help" class="settings-help">An exported-audio folder works without Full Disk Access. Entering the protected Voice Memos folder path still requires permission. Export new recordings to your chosen folder to include them.</p>
+    </form>
+    <h2>Photos <span class="settings-optional">Optional</span></h2>
+    <div class="settings-group"><div class="settings-row"><div><strong>Class photos</strong><span id="photos-access-state" class="settings-status">Optional</span></div><button id="photos-grant">Enable Photos…</button></div><p class="settings-help">Find board and presentation photos from your classes. Review and approve each photo before upload. Photos access is separate and is not required to use voiceNotebook.</p></div>
+  </section>
+</dialog>
+<dialog id="upload-dialog" class="upload-dialog"><div class="dialog-heading"><h2 id="upload-title">Upload recordings</h2><button id="upload-close" type="button" class="icon-button" aria-label="Close upload">×</button></div>
+  <div id="upload-options"><p id="upload-summary"></p><label class="check"><input id="include-photos" type="checkbox"><span>Include class photos <span data-help="After audio uploads, find photos taken during those classes. Review and approve images before sending them to the same notebook."></span></span></label><div id="upload-enable"><button id="upload-photos-grant" class="text-button">Enable optional Photos access ↗</button></div><button id="upload-start" class="primary">Upload audio</button></div>
+  <p id="upload-progress" role="status" aria-live="polite" hidden></p>
+  <section id="upload-photo-review" hidden><div class="photo-review-heading"><div><h3>Class photos</h3><p id="photo-summary"></p></div><button id="photo-scan" class="secondary">Find class photos</button></div><p id="photo-access" class="hint"></p><div id="photo-list" class="photo-list"></div><button id="photo-sync" class="primary" disabled>Upload approved photos ↗</button></section>
+</dialog>
+<div id="lecture-editor" popover="auto" class="lecture-editor"><form id="lecture-form"><div class="dialog-heading"><h2 id="lecture-heading">Class</h2><button id="lecture-cancel" type="button" class="icon-button" aria-label="Cancel class edit">×</button></div><label>Course<input id="lecture-course" maxlength="40" required placeholder="EE221"></label><label>Day<select id="lecture-day" required><option value="">Choose day</option></select></label><div class="fields"><label>Starts<input id="lecture-start" type="time" required></label><label>Ends<input id="lecture-end" type="time" required></label></div><div class="lecture-actions"><button id="lecture-delete" type="button" class="text-button">Delete class</button><button class="primary" type="submit">Done</button></div></form></div>
+<dialog id="review-dialog"><form id="review-form"><div class="dialog-heading"><h2>Review recording</h2><button type="button" id="close-review" class="icon-button" aria-label="Close review">×</button></div><p id="review-name"></p><label>Recording date & time<input id="review-date" type="datetime-local" required></label><div class="fields"><label>Course code<input id="review-course" required maxlength="40" placeholder="EE221"></label><label>Week<input id="review-week" type="number" min="1" max="60" required></label></div><button class="primary" type="submit">Save assignment</button></form></dialog>
+<dialog id="photo-preview"><div class="dialog-heading"><h2>Review class photo</h2><button id="photo-preview-close" class="icon-button" aria-label="Close photo preview">×</button></div><p id="photo-preview-caption"></p><img id="photo-preview-image" alt="Class photo for review"></dialog>
+<dialog id="google-account-dialog"><form id="google-account-form"><div class="dialog-heading"><h2>Google account</h2><button id="google-account-cancel" type="button" class="icon-button" aria-label="Cancel sign-in">×</button></div><label>Account<select id="google-account" required></select></label><button class="primary" type="submit">Connect</button></form></dialog>
+<dialog id="onboarding-dialog" class="onboarding" aria-labelledby="onboarding-title">
+  <div class="onboarding-top"><span id="onboarding-step"></span><button id="onboarding-close" class="icon-button" aria-label="Close quick start">×</button></div>
+  <div class="onboarding-mark" aria-hidden="true">↗</div><h1 id="onboarding-title"></h1><p id="onboarding-copy"></p>
+  <p id="onboarding-status" role="status"></p><button id="onboarding-action" class="secondary"></button>
+  <div class="onboarding-bottom"><button id="onboarding-back" class="text-button">Back</button><button id="onboarding-next" class="primary">Continue</button></div>
+</dialog>
+<dialog id="photos-explanation" class="onboarding" aria-labelledby="photos-explanation-title"><h1 id="photos-explanation-title">Add the board to your notes.</h1><p>Photos access finds images taken during your classes. You choose which images to upload after each recording.</p><p>Optional. Audio works without it. Nothing is uploaded without your approval.</p><div class="onboarding-bottom"><button id="photos-not-now" class="text-button">Not now</button><button id="photos-continue" class="primary">Continue to Photos access</button></div></dialog>
+<link rel="stylesheet" href="/onboarding.css"><script src="/onboarding.js" defer></script><link rel="stylesheet" href="/library.css">
+</body></html>

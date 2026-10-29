@@ -1,0 +1,9 @@
+.recording-week{display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding:13px 16px;background:var(--surface);border-bottom:1px solid var(--charcoal);border-top:1px solid var(--charcoal)}
+.recording-week:first-child{border-top:0}
+.recording-week h2{font-size:14px;font-weight:650;margin:0}
+.recording-week>span{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.recording .row-actions{flex-wrap:wrap}
+.recording-audio{display:block;width:100%;min-width:180px;max-width:400px;height:36px;margin-top:12px}
+.recording-rename{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.recording-rename input{width:100%;min-width:0;font:inherit;padding:7px;border:1px solid var(--charcoal);background:var(--white);color:var(--charcoal)}
+.recording-rename button{margin:0}

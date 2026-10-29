@@ -1,0 +1,25 @@
+name: Bug report
+description: Something does not work as expected.
+body:
+  - type: markdown
+    attributes:
+      value: "Use synthetic examples. Do not attach recordings, photos, session files or cookies. Report security issues privately."
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Include the steps and what you expected instead.
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: macOS version and Mac architecture
+      placeholder: "macOS 26, Apple silicon"
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Redacted error or screenshot
+      description: Remove personal paths, names and account information.

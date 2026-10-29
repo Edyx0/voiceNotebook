@@ -1,0 +1,37 @@
+name: Checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  macos:
+    runs-on: macos-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install audio tools
+        run: brew list ffmpeg >/dev/null 2>&1 || brew install ffmpeg
+      - name: Install Python and browser dependencies
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install -r requirements-dev.txt
+          .venv/bin/python -m playwright install chromium
+      - name: Build the Mac app
+        env:
+          VOICE_NOTEBOOK_SIGNING_IDENTITY: '-'
+        run: bash mac/build.sh
+      - name: Run isolated tests
+        env:
+          NOTEBOOKLM_HOME: ${{ runner.temp }}/notebooklm-test-auth
+          VOICE_NOTEBOOK_HOME: ${{ runner.temp }}/voice-notebook-test-data
+        run: .venv/bin/python -m unittest discover -s tests -v
