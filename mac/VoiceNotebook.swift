@@ -13,6 +13,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     var attempts = 0
     var logHandle: FileHandle?
     private let googleSignIn = GoogleSignIn()
+    private var loadingView: NSView?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         buildMenu()
@@ -28,6 +29,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         webView.uiDelegate = self
         webView.setValue(false, forKey: "drawsBackground")
         window.contentView = webView
+        let loading = NSView(frame: webView.bounds)
+        loading.autoresizingMask = [.width, .height]
+        loading.wantsLayer = true
+        loading.layer?.backgroundColor = NSColor.white.cgColor
+        let message = NSTextField(labelWithString: "Opening lecture library…")
+        message.font = .systemFont(ofSize: 14)
+        message.textColor = .darkGray
+        message.translatesAutoresizingMaskIntoConstraints = false
+        loading.addSubview(message)
+        NSLayoutConstraint.activate([
+            message.centerXAnchor.constraint(equalTo: loading.centerXAnchor),
+            message.centerYAnchor.constraint(equalTo: loading.centerYAnchor)
+        ])
+        webView.addSubview(loading)
+        loadingView = loading
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
         startBackend()
@@ -148,7 +164,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
             if !googleSignIn.start(in: message.webView?.window ?? window) {
                 message.webView?.evaluateJavaScript("action('/api/login/cancel', {}).then(() => notice('Could not open Google sign-in.', true))")
             }
-        case "closeGoogleSignIn": googleSignIn.close()
+        case "closeGoogleSignIn", "googleSignInConnected": googleSignIn.close()
         default: break
         }
     }
@@ -225,6 +241,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         else {
             if url.scheme == "https" { NSWorkspace.shared.open(url) }
             decisionHandler(.cancel)
+        }
+    }
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        if webView === self.webView {
+            loadingView?.removeFromSuperview()
+            loadingView = nil
         }
     }
     func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {

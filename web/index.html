@@ -44,7 +44,7 @@
 <section id="connection-view" aria-label="NotebookLM connection" hidden>
   <div class="section-heading"><h1>NotebookLM</h1></div>
   <p class="connection-intro">Your lectures, organised by course and week. Recordings from the same week go into the same notebook.</p>
-  <details class="connection-help"><summary>How NotebookLM works</summary><p>Sign in with Google in a separate browser window. The window closes and voiceNotebook verifies the connection automatically. Your session stays on this Mac; this primary flow does not import your default browser’s cookies. An unofficial NotebookLM client creates notebooks and uploads sources. Google may occasionally require you to sign in again.</p><p>Audio is converted to MP3 and split below 200 MB when needed. Class photos are sent only after your approval.</p></details>
+  <details class="connection-help"><summary>How NotebookLM works</summary><p>Sign in through your default browser. voiceNotebook uses the selected account’s local session; no extra browser is installed. macOS may ask for browser control or Keychain access. Safari’s protected session can require Full Disk Access. The sign-in window closes after connecting; your other windows stay open. An unofficial NotebookLM client creates notebooks and uploads sources. Google may occasionally require you to sign in again.</p><p>Audio is converted to MP3 and split below 200 MB when needed. Class photos are sent only after your approval.</p></details>
   <div class="connection-panel"><div class="connection-state"><span id="auth-indicator" aria-hidden="true"></span><div><h2 id="auth-title">Not connected</h2><p id="connection">Checking connection status…</p></div></div><div class="actions"><button id="check-connection" class="secondary">Check connection</button><button id="login" class="primary">Sign in with Google ↗</button></div></div>
   <button id="show-data" class="text-button native-only" hidden>Show local files ↗</button>
 </section>
@@ -56,6 +56,7 @@
     <button id="restart-onboarding" type="button">Quick start…</button>
     <h2>NotebookLM</h2>
     <div class="settings-group"><div class="settings-row"><span id="settings-google-status" class="settings-status" role="status">Not connected</span><button id="settings-login" type="button">Sign in with Google</button></div></div>
+    <p class="settings-help">Uses your default browser. macOS may ask for browser control or Keychain access; Safari may need Full Disk Access. No extra browser is installed.</p>
     <h2>Recordings</h2>
     <div class="settings-group">
       <div class="settings-row"><div><strong>Voice Memos</strong><span id="voice-access-state" class="settings-status">Checking…</span></div><button id="voice-grant" aria-describedby="voice-access-help">Open Full Disk Access…</button></div>

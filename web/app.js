@@ -73,18 +73,20 @@ window.finishGoogleSignIn=async()=>{
     try{
       const {accounts}=await request('/api/login/accounts');
       if(!accounts.length)throw Error('Finish Google sign-in first.');
-      if(accounts.length===1){await action('/api/login/complete',{email:accounts[0]});return;}
+      if(accounts.length===1){await request('/api/login/complete',{email:accounts[0]});await refresh();return;}
       const select=$('google-account');select.replaceChildren();
       for(const email of accounts){const option=el('option',email);option.value=email;select.append(option);}
       $('google-account-dialog').showModal();
-    }catch(e){await action('/api/login/cancel',{});notice(e.message,true);}
+    }catch(e){
+      await refresh();
+      if(state?.auth?.status==='signing_in'){await action('/api/login/cancel',{});notice(e.message,true);}
+      else if(!['connected','checking'].includes(state?.auth?.status))notice(e.message,true);
+    }
     finally{googleSignInFinishing=false;}
 };
 $('login').onclick=async()=>{
-  if(state?.auth?.status==='signing_in'&&state.auth.presentation==='managed')await action('/api/login/cancel',{});
-  else if(state?.auth?.status==='signing_in'&&native){native.postMessage({action:'closeGoogleSignIn'});await window.finishGoogleSignIn();}
-  else if(state?.auth?.status==='signing_in')await action('/api/login/complete',{});
-  else await action('/api/login',{presentation:'managed'});
+  if(state?.auth?.status==='signing_in')await window.finishGoogleSignIn();
+  else await action('/api/login',{presentation:'browser'});
 };
 $('google-account-form').onsubmit=async event=>{event.preventDefault();if(await action('/api/login/complete',{email:$('google-account').value}))$('google-account-dialog').close();};
 $('google-account-cancel').onclick=async()=>{$('google-account-dialog').close();await action('/api/login/cancel',{});};
@@ -179,11 +181,11 @@ async function refresh() {
     $('connection-label').textContent=auth.status==='connected'?'NotebookLM connected':auth.status==='checking'?'Checking NotebookLM…':auth.status==='signing_in'?'Signing in…':state.login_saved?'NotebookLM · session saved':'NotebookLM not connected';
     $('auth-indicator').className=auth.status;$('connection-light').className=auth.status;
     $('connection').textContent=!state.dependencies.notebooklm?'NotebookLM client is missing. Reinstall the Mac app.':!state.dependencies.ffmpeg?'Audio converter is missing. Reinstall the Mac app.':auth.status==='idle'&&state.login_saved?'A saved Google session was found. Check the connection before uploading.':auth.message;
-    $('login').textContent=auth.status==='signing_in'?(auth.presentation==='managed'?'Cancel sign-in':'Finish sign-in'):'Sign in with Google ↗';
+    $('login').textContent=auth.status==='signing_in'?'Finish sign-in':auth.status==='connected'?'Change Google account ↗':'Sign in with Google ↗';
     if(auth.status==='connected'&&['signing_in','checking'].includes(previousAuth))native?.postMessage({action:'googleSignInConnected'});
     $('login').disabled=state.job.busy||auth.status==='checking';
     $('settings-login').textContent=$('login').textContent;$('settings-login').disabled=$('login').disabled;
-    $('settings-google-status').textContent=auth.status==='error'?auth.message:$('auth-title').textContent;
+    $('settings-google-status').textContent=auth.message||$('auth-title').textContent;
     $('check-connection').disabled=state.job.busy||['signing_in','checking'].includes(auth.status);
     if(state.job.error)notice(state.job.error,true);else if(state.job.busy)notice(state.job.message);
     else if($('notice').textContent.startsWith('Uploading ')||$('notice').textContent.startsWith('Converting ')||$('notice').textContent.startsWith('Scanning '))notice(state.job.message);

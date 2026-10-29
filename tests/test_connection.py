@@ -60,7 +60,7 @@ class ConnectionTests(unittest.TestCase):
         process = SimpleNamespace(pid=999, poll=lambda: None)
         with patch('voice_notebook.subprocess.Popen', return_value=process), \
              patch('voice_notebook.threading.Thread'), patch('os.killpg'):
-            self.app.login('managed')
+            self.app.login('browser')
             self.app.cancel_login()
         self.assertEqual(self.app.auth, previous)
 
@@ -68,7 +68,22 @@ class ConnectionTests(unittest.TestCase):
         self.app.auth = {'status': 'connected', 'message': 'Connected'}
         with patch('voice_notebook.subprocess.Popen', side_effect=OSError('missing')):
             with self.assertRaisesRegex(ValueError, 'could not open'):
-                self.app.login('managed')
+                self.app.login('browser')
+        self.assertEqual(self.app.auth['status'], 'connected')
+
+    def test_closing_the_browser_keeps_the_previous_verified_connection(self):
+        previous = {'status': 'connected', 'message': 'Connected'}
+        self.app.auth = dict(previous)
+        process = SimpleNamespace(wait=lambda: 8, poll=lambda: 8)
+        with patch('voice_notebook.subprocess.Popen', return_value=process), \
+             patch('voice_notebook.threading.Thread', side_effect=lambda target, daemon: SimpleNamespace(start=target)):
+            self.app.login('browser')
+        self.assertEqual(self.app.auth['status'], 'connected')
+        self.assertIn('existing connection', self.app.auth['message'])
+
+    def test_stale_cancel_does_not_disconnect_a_completed_login(self):
+        self.app.auth = {'status': 'connected', 'message': 'Connected'}
+        self.app.cancel_login()
         self.assertEqual(self.app.auth['status'], 'connected')
 
     def test_finish_sign_in_confirms_before_session_import(self):

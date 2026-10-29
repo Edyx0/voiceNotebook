@@ -42,14 +42,13 @@ cd voiceNotebook
 brew install ffmpeg
 python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements-dev.txt
-.venv/bin/python -m playwright install chromium
 bash mac/build.sh
 mkdir -p ~/Applications
 ditto dist/voiceNotebook.app ~/Applications/voiceNotebook.app
 open ~/Applications/voiceNotebook.app
 ```
 
-The app bundles its Python service, audio tools and upload browser. It does not need a terminal window when installed. For a browser preview with exported audio, run `./start.command`. Native Photos access and local timetable photo recognition need the built Mac app.
+The app bundles its Python service and audio tools. It does not bundle, download or compile a browser. Google sign-in uses the Mac's default browser. It does not need a terminal window when installed. For a browser preview with exported audio, run `./start.command`. Native Photos access and local timetable photo recognition need the built Mac app.
 
 ### Signing
 
@@ -64,7 +63,7 @@ An Apple signing identity is not included. This source build is not a notarized 
 ## First use
 
 1. **Connect recordings.** Open Settings and enable Full Disk Access for voiceNotebook if you use Apple Voice Memos. Quit and reopen after granting it. Alternatively, choose an exported-audio folder; that route does not need Full Disk Access.
-2. **Connect NotebookLM.** Choose “Sign in with Google”. A separate browser profile opens. Select your account and complete Google's verification. The window closes and the app verifies the session automatically. The primary flow needs no browser-cookie import or “Finish sign-in” step.
+2. **Connect NotebookLM.** Choose “Sign in with Google”. A separate window opens in the default browser. Select your account and complete Google's verification. In Safari and supported Chromium browsers, voiceNotebook detects the return to NotebookLM, imports the selected account's session and closes its own window. Other browser windows stay open. “Finish sign-in” is available if automatic completion is unavailable. macOS may request browser Automation or Keychain access; Safari's protected session can require Full Disk Access. These system approvals cannot be skipped.
 3. **Add your timetable.** Import a photo or enter classes manually. Set the semester's first week and timezone, review every class, then save.
 4. **Scan and upload.** Check assignments in Recordings, then choose Convert & upload. Photos remain optional; enable them only if you want them in a particular upload.
 
@@ -76,7 +75,7 @@ There is no hosted voiceNotebook backend and no project analytics. The local ser
 
 Configuration, the local SQLite queue, converted audio, previews and reviewed photo copies live under `~/Library/Application Support/voiceNotebook`. `VOICE_NOTEBOOK_HOME` can select a separate app-data folder. The NotebookLM client stores its Google session in its local profile; `NOTEBOOKLM_HOME` can select separate session storage. Treat that profile like a password.
 
-Sign-in verifies a staged session before replacing an existing one. It never asks for a Google password in the app UI. Only queued recordings and approved photos are sent to Google's NotebookLM service. Enabling automatic sync explicitly opts into scheduled audio uploads; photo approval remains manual. Source files stay intact.
+Sign-in verifies a staged session before replacing an existing one. It never asks for a Google password in the app UI. Google OAuth tokens do not provide access to personal NotebookLM notebooks; this integration uses a local browser session instead. Only queued recordings and approved photos are sent to Google's NotebookLM service. Enabling automatic sync explicitly opts into scheduled audio uploads; photo approval remains manual. Source files stay intact.
 
 Full Disk Access, Photos authorization and Google's account verification belong to macOS and Google. The app explains them and opens the relevant controls; it cannot silently grant or bypass them.
 

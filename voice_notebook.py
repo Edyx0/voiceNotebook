@@ -476,6 +476,8 @@ class App:
 
     def login(self, presentation="browser"):
         with self.guard:
+            if presentation not in ('browser', 'system'):
+                raise ValueError('Unsupported sign-in presentation.')
             if self.job["busy"]:
                 raise ValueError("Wait for the current operation before signing in.")
             if self.auth["status"] in ("signing_in", "checking"):
@@ -486,10 +488,8 @@ class App:
             command.append("--notebooklm-login")
             if presentation == "system":
                 command.append("--system-popup")
-            if presentation == "managed":
-                command.append("--managed-popup")
             previous = dict(self.auth)
-            self.auth = {"status": "signing_in", "message": "Choose your Google account in the sign-in window. This window will close when connected." if presentation == "managed" else "After signing in, close the popup to connect." if presentation == "system" else "Sign in in your browser, then choose Finish sign-in.", "presentation": presentation}
+            self.auth = {"status": "signing_in", "message": "Choose your Google account in the sign-in window. The window closes when connected. macOS may ask for browser session access." if presentation == "browser" else "After signing in, close the popup to connect.", "presentation": presentation}
             try:
                 self.auth_process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,
                                                      stderr=subprocess.DEVNULL, start_new_session=True,
@@ -503,16 +503,17 @@ class App:
             result = process.wait()
             if self.auth_process is not process:
                 return
-            self.auth_before_login = None
+            previous, self.auth_before_login = self.auth_before_login, None
             if result:
-                messages = {2: "Allow browser session access in macOS Settings, then try again.",
+                messages = {2: "Allow browser Keychain access if macOS asks. For Safari, enable voiceNotebook in Privacy & Security → Full Disk Access, then reopen the app.",
                             3: "Session import isn’t supported for your default browser.",
                             4: "Use a browser profile with one Google account, then try again.",
-                            5: "Allow voiceNotebook to open a browser window, then try again.",
+                            5: "Allow voiceNotebook to control your browser in Privacy & Security → Automation, then try again.",
                             6: "Finish Google sign-in in the popup before connecting.",
-                            7: "The sign-in browser is missing. Reinstall voiceNotebook.",
                             8: "Google sign-in did not complete. Try again."}
-                self.auth = {"status": "error", "message": messages.get(result, "Sign-in didn’t finish. Try again.")}
+                self.auth = ({**previous, "message": messages.get(result, "Sign-in didn’t finish. Try again.") + " Your existing connection is still available."}
+                             if previous and previous.get("status") == "connected"
+                             else {"status": "error", "message": messages.get(result, "Sign-in didn’t finish. Try again.")})
             else:
                 self.auth = {"status": "idle", "message": "Session saved."}
                 if not self.job["busy"]:
@@ -535,6 +536,8 @@ class App:
     def cancel_login(self):
         import signal
         with self.guard:
+            if self.auth['status'] == 'connected' and (not self.auth_process or self.auth_process.poll() is not None):
+                return
             process, self.auth_process = self.auth_process, None
             if process and process.poll() is None:
                 try:
@@ -770,16 +773,18 @@ if __name__ == "__main__":
         if "--help" in sys.argv:
             print("Google login in your default browser.")
             raise SystemExit(0)
-        if "--managed-popup" in sys.argv:
-            import signal
-            def cancel_capture(signum, frame):
-                raise SystemExit(1)
-            signal.signal(signal.SIGTERM, cancel_capture)
-            from managed_signin import sign_in
-            raise SystemExit(sign_in())
-        from browser_signin import sign_in
+        import signal
+        def cancel_browser_login(signum, frame):
+            raise SystemExit(1)
+        signal.signal(signal.SIGTERM, cancel_browser_login)
+        from browser_signin import sign_in, _diagnose
         system_popup = "--system-popup" in sys.argv
-        raise SystemExit(sign_in(timeout=900 if system_popup else 300, system_popup=system_popup))
+        try:
+            result = sign_in(timeout=900 if system_popup else 300, system_popup=system_popup)
+        except Exception as error:
+            _diagnose('login', error)
+            result = 8
+        raise SystemExit(result)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--open", action="store_true", help="Open the app in your browser")

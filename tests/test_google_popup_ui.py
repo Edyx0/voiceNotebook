@@ -40,7 +40,7 @@ class GooglePopupUITests(unittest.TestCase):
 
                     def login(route):
                         requests.append(route.request.post_data_json)
-                        state['auth'] = {'status': 'signing_in', 'message': 'Choose your account.', 'presentation': 'managed'}
+                        state['auth'] = {'status': 'signing_in', 'message': 'Choose your account.', 'presentation': 'browser'}
                         route.fulfill(json={'ok': True})
 
                     page.route('**/api/login', login)
@@ -48,19 +48,23 @@ class GooglePopupUITests(unittest.TestCase):
                         state['auth'] = {'status': 'idle', 'message': 'Not connected.'}
                         route.fulfill(json={'ok': True})
                     page.route('**/api/login/cancel', cancel)
+                    page.route('**/api/login/accounts', lambda route: route.fulfill(json={'accounts': ['first@example.test', 'chosen@example.test']}))
+                    def complete(route):
+                        self.assertEqual(route.request.post_data_json, {'email': 'chosen@example.test'})
+                        state['auth'] = {'status': 'connected', 'message': 'Connected'}
+                        route.fulfill(json={'ok': True})
+                    page.route('**/api/login/complete', complete)
                     page.goto(url + '/?settings=1')
                     page.locator('#settings-login').click()
-                    expect(page.locator('#settings-login')).to_have_text('Cancel sign-in')
-                    self.assertEqual(requests, [{'presentation': 'managed'}])
+                    expect(page.locator('#settings-login')).to_have_text('Finish sign-in')
+                    self.assertEqual(requests, [{'presentation': 'browser'}])
                     self.assertEqual(page.evaluate('window.nativeCalls'), [])
                     page.locator('#settings-login').click()
-                    expect(page.locator('#settings-login')).to_have_text('Sign in with Google ↗')
+                    expect(page.locator('#google-account-dialog')).to_be_visible()
+                    page.locator('#google-account').select_option('chosen@example.test')
+                    page.locator('#google-account-form button[type="submit"]').click()
                     expect(page.locator('#google-account-dialog')).not_to_be_visible()
-                    page.locator('#settings-login').click()
-                    expect(page.locator('#settings-login')).to_have_text('Cancel sign-in')
-                    state['auth'] = {'status': 'connected', 'message': 'Connected'}
-                    page.evaluate('refresh()')
-                    expect(page.locator('#google-account-dialog')).not_to_be_visible()
+                    expect(page.locator('#settings-login')).to_have_text('Change Google account ↗')
                     self.assertIn('googleSignInConnected', page.evaluate('window.nativeCalls'))
                     self.assertEqual(errors, [])
                     browser.close()
