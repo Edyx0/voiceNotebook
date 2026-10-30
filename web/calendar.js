@@ -33,7 +33,7 @@ function renderTimetable() {
   const dirty=JSON.stringify(values.map(comparable))!==JSON.stringify(state.config.lectures.map(comparable))||weekOne!==state.config.week_one;
   $('calendar-draft').textContent=dirty?'Unsaved changes':'';
 }
-function moveWeeklyClass(value,change,fromHome=false) {
+function moveWeeklyClass(value,change,fromHome=false,displayWeek=null) {
   const rows=classRows();
   const same=row=>{
     const draft=classValue(row);
@@ -41,10 +41,10 @@ function moveWeeklyClass(value,change,fromHome=false) {
   };
   const matches=fromHome?rows.filter(same):[];
   const row=fromHome?(matches.length===1?matches[0]:null):rows[value.index];
-  if(fromHome){calendarWeek=state.overview?.week||calendarWeek;view('setup');}
+  if(fromHome){calendarWeek=displayWeek||state.overview?.week||calendarWeek;view('setup');}
   if(!row){notice('Review your existing timetable draft before moving this class.',true);return;}
   setClassValue(row,{...classValue(row),...change});renderTimetable();
-  notice('This move affects every week. Review and save setup to apply.');
+  notice('This move affects every week. Review and save the timetable to apply.');
 }
 function drawWeeklyCalendar(root,values,options) {
   const {week,weekOne}=options;

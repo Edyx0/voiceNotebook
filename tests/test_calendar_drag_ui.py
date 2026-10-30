@@ -109,9 +109,9 @@ class CalendarDragBrowserTests(unittest.TestCase):
         moved=calendar.locator('.calendar-day[data-day="3"] .calendar-event[data-course="EE221"]')
         expect(moved).to_contain_text('11:15–12:15')
         expect(p.locator('#calendar-draft')).to_have_text('Unsaved changes')
-        expect(p.locator('#notice')).to_have_text('This move affects every week. Review and save setup to apply.')
+        expect(p.locator('#notice')).to_have_text('This move affects every week. Review and save the timetable to apply.')
         self.assertEqual(p.request.get(self.url+'/api/state').json()['config']['lectures'][0]['day'],0)
-        p.get_by_role('button',name='Save setup',exact=True).click()
+        p.get_by_role('button',name='Save timetable',exact=True).click()
         expect(p.locator('#recordings-view')).to_be_visible()
         saved=p.request.get(self.url+'/api/state').json()['config']['lectures'][0]
         self.assertEqual((saved['day'],saved['start'],saved['end']),(3,'11:15','12:15'))

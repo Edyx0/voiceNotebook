@@ -1,17 +1,18 @@
 /* Studio archive: the supplied palette, quiet surfaces and familiar Mac controls. */
 :root{--surface:oklch(.964 0 0);--line:oklch(.89 0 0);--muted:oklch(.50 0 0)}
 body{font-size:14px;line-height:1.45}
-header{height:84px;padding:0 40px;background:var(--white);color:var(--charcoal);border-bottom:1px solid var(--line)}
+header{height:84px;padding:0 40px;display:grid;grid-template-columns:1fr auto 1fr;gap:16px;background:var(--white);color:var(--charcoal);border-bottom:1px solid var(--line)}
 .brand{color:var(--charcoal);font-size:25px;letter-spacing:-.04em;font-weight:500;gap:11px}
 .brand svg{width:30px;height:30px;flex-shrink:0}.brand>span{font-weight:500}.brand i{display:none}
-.header-actions{gap:18px;margin-left:auto}.settings-shortcut,.connection-shortcut{color:var(--charcoal);font-size:13px;font-weight:400}
+.header-actions{gap:18px;justify-self:end;margin-left:0}.settings-shortcut,.connection-shortcut{color:var(--charcoal);font-size:13px;font-weight:400}
+.settings-shortcut svg{display:block;width:18px;height:18px}
 .connection-shortcut>span:first-child{border-radius:50%;width:6px;height:6px;background:var(--silver);border:0}
 .connection-shortcut>span:first-child.connected{background:var(--charcoal);border:0}
 main{max-width:1440px;padding:0 40px}
-nav{gap:6px;padding:12px 0;border-bottom:1px solid var(--line)}
+nav{gap:5px;padding:0;border:0;justify-content:center}
 .tab{padding:9px 16px;font-size:13px;font-weight:450;border-radius:6px}
 .tab.active{background:var(--surface);font-weight:600}.tab.active:after{display:none}
-.tab>span{background:transparent;font:11px var(--mono);padding:0 0 0 2px;color:var(--muted)}
+.tab>span{display:none}
 h1,.calendar-title h1{font-size:30px;font-weight:600;letter-spacing:-.025em}
 h2{font-size:18px}.toolbar,.calendar-title{padding:30px 0 26px}
 .toolbar p,.section-heading p{font-size:14px}
@@ -23,7 +24,7 @@ button:focus-visible,a:focus-visible{outline-width:2px;outline-offset:3px}
 input,select{border-radius:6px;font-size:14px;min-height:36px;padding:9px 11px}
 label,.hint,label small{font-size:13px}summary{font-size:13px}
 .filters{gap:24px;padding:8px 0 20px}.filter{font-size:13px}
-.column-head{background:var(--white);color:var(--muted);border-bottom:1px solid var(--line);font-size:11px;padding:12px 0}
+.column-head{display:none}
 .recording-list{border:0;min-height:280px}.recording{padding:22px 0;gap:24px}
 .recording-name{font-size:15px;font-weight:500}.recording small{font-size:12px;line-height:1.6}
 .recording .row-actions{gap:8px;flex-wrap:wrap}.recording button{font-size:12px;min-height:32px;border-radius:5px}
@@ -33,8 +34,11 @@ label,.hint,label small{font-size:13px}summary{font-size:13px}
 .badge.approved{background:var(--surface);border:0;padding:4px 7px}.badge.error{padding:4px 7px;border-radius:4px}
 .recording-week{padding:14px 0;border-top:1px solid var(--silver);border-bottom:1px solid var(--line);background:var(--white)}
 .recording-week h2{font-size:14px}.recording-week span{font-size:12px}
-.home-progress{font-size:13px;margin:0 0 22px;gap:20px}
-.calendar-scroll{border:0;border-bottom:1px solid var(--line);border-radius:0;max-height:62vh}
+.home-progress{justify-content:space-between;font-size:13px;margin:0;gap:20px;padding:20px 0;border-top:1px solid var(--line)}
+.home-progress #home-captured{color:var(--muted)}
+.home-progress #home-captured:not(:empty):before{content:' · '}
+.home-actions{gap:8px}.home-actions .week-controls{margin-right:12px;gap:8px}.home-actions .week-controls button{width:32px;font-size:18px}.home-actions #home-today{width:auto;padding:0 14px;font-size:13px}
+.calendar-scroll{border:0;border-radius:0;height:min(594px,calc(100vh - 280px));min-height:300px;max-height:none}
 .calendar-head{border-color:var(--line)}.calendar-day-label{justify-content:flex-start;padding:15px 12px;font-size:13px}
 .calendar-day-label strong{font-size:15px;font-weight:600}.calendar-axis>span{font-size:11px}
 .calendar-rule{background:oklch(.94 0 0)}.calendar-event{border:1px solid var(--line);border-left:3px solid var(--silver);padding:10px 12px;border-radius:5px;background:var(--white)!important;gap:5px}
@@ -72,7 +76,8 @@ dialog::backdrop{background:oklch(.3 0 0 / .25)}
 footer{border-color:var(--line);font:12px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:22px 0}
 .onboarding-step{font:12px var(--mono)}.onboarding-title{font-size:28px}
 @media(min-width:1051px){.column-head,.recording{grid-template-columns:minmax(240px,1.5fr) minmax(160px,1fr) 120px minmax(250px,1fr)}}
-@media(max-width:1050px){header{padding:0 28px}.recording{gap:14px}}
+@media(max-width:1050px){header{padding:0 28px}.recording{gap:14px}.header-actions{gap:8px}}
+@media(max-width:850px){header{height:auto;min-height:84px;grid-template-columns:1fr auto;padding-top:14px;padding-bottom:10px}header nav{grid-column:1/-1;grid-row:2;justify-self:start}.header-actions{grid-column:2;grid-row:1}.calendar-scroll{height:min(594px,calc(100vh - 320px))}}
 @media(max-width:800px){main{padding:0 24px}.column-head{display:none}.recording{padding:20px 0}.recording-list{border-top:1px solid var(--line)}}
 @media(max-width:650px){#upload-photo-review .class-photo{grid-template-columns:1fr;gap:20px}#upload-photo-review .photo-open img{height:260px}}
-@media(max-width:570px){header{height:72px;padding:0 18px;gap:12px}.brand{font-size:22px;gap:8px}.brand svg{width:26px;height:26px}.header-actions{gap:10px}.connection-shortcut{font-size:0}.settings-shortcut{font-size:12px}.settings-shortcut:first-child:not(#open-settings){font-size:11px}main{padding:0 18px}nav{gap:4px}.tab{font-size:12px;padding:9px 10px}.toolbar{padding:26px 0 22px}h1,.calendar-title h1{font-size:27px}.actions{gap:8px}.primary,.secondary{font-size:12px}.filters{gap:18px}.filter{font-size:12px}.home-progress{font-size:12px;gap:12px}.calendar-day-label{padding:12px 7px}.calendar-event{padding:8px}.calendar-event strong{font-size:12px}.recording small{font-size:11px}.upload-dialog{padding:20px}.access-gate{padding:44px 0}.access-gate h1{font-size:27px}footer{font-size:11px}}
+@media(max-width:570px){header{padding:14px 18px 10px;gap:10px}.brand{font-size:22px;gap:8px}.brand svg{width:26px;height:26px}.header-actions{gap:10px}.connection-shortcut{font-size:0}.settings-shortcut{font-size:12px}.settings-shortcut:first-child:not(#open-settings){font-size:11px}main{padding:0 18px}nav{gap:4px}.tab{font-size:12px;padding:9px 10px}.toolbar{padding:26px 0 22px}h1,.calendar-title h1{font-size:27px}.actions{gap:8px}.home-actions{flex-wrap:wrap}.home-actions button{flex:initial}.home-progress{flex-wrap:wrap}.primary,.secondary{font-size:12px}.filters{gap:18px}.filter{font-size:12px}.home-progress{font-size:12px;gap:12px}.calendar-day-label{padding:12px 7px}.calendar-event{padding:8px}.calendar-event strong{font-size:12px}.recording small{font-size:11px}.upload-dialog{padding:20px}.access-gate{padding:44px 0}.access-gate h1{font-size:27px}footer{font-size:11px}}

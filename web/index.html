@@ -5,17 +5,17 @@
 <link rel="stylesheet" href="/studio.css">
 </head><body>
 <header>
-  <a class="brand" href="/" aria-label="voiceNotebook home"><svg aria-hidden="true" viewBox="0 0 40 40" fill="none"><rect x="6" y="5" width="28" height="31" rx="4" stroke="currentColor" stroke-width="2.5"/><path d="M13 5v31M20 24v-8M25 27V13M30 22v-4" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><path d="M6 11h7" stroke="#D9302E" stroke-width="4"/></svg><span>voiceNotebook</span></a>
-  <div class="header-actions"><button id="continue-onboarding" class="settings-shortcut" hidden>Continue setup</button><button id="open-settings" class="settings-shortcut" aria-label="Open Settings">Settings…</button><button class="connection-shortcut" id="connection-shortcut" hidden><span id="connection-light" aria-hidden="true"></span><span id="connection-label">NotebookLM offline</span><span aria-hidden="true">↗</span></button></div>
+  <a class="brand" href="/" aria-label="voiceNotebook home"><svg aria-hidden="true" viewBox="0 0 40 40" fill="none"><rect x="6" y="5" width="28" height="31" rx="4" stroke="#404040" stroke-width="2.5"/><path d="M13 5v31M18.5 24v-8M23.5 27V13M28.5 22v-4" stroke="#404040" stroke-width="2.5" stroke-linecap="round"/><path d="M6 11h7" stroke="#D9302E" stroke-width="4"/></svg><span>voiceNotebook</span></a>
+  <nav id="workspace-nav" aria-label="Workspace" hidden><button class="tab active" data-view="home" aria-pressed="true">This week</button><button class="tab" data-view="recordings" aria-pressed="false">Recordings <span id="count">0</span></button><button class="tab" data-view="setup" aria-pressed="false">Timetable</button></nav>
+  <div class="header-actions"><button id="continue-onboarding" class="settings-shortcut" hidden>Continue setup</button><button class="connection-shortcut" id="connection-shortcut" hidden><span id="connection-light" aria-hidden="true"></span><span id="connection-label">NotebookLM offline</span></button><button id="open-settings" class="settings-shortcut" aria-label="Open Settings"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 3h6l1 3 3 1v6l-3 1-1 3H9l-1-3-3-1V7l3-1z" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="10" r="3" fill="none" stroke="currentColor" stroke-width="1.7"/></svg></button></div>
 </header>
 <main>
-<nav id="workspace-nav" aria-label="Workspace" hidden><button class="tab active" data-view="home" aria-pressed="true">This week</button><button class="tab" data-view="recordings" aria-pressed="false">Recordings <span id="count">0</span></button><button class="tab" data-view="setup" aria-pressed="false">Timetable & setup</button></nav>
 <div id="notice" role="status" aria-live="polite" hidden></div>
 <section id="access-gate" class="access-gate" aria-labelledby="access-gate-title"><div class="gate-icon" aria-hidden="true">♫</div><h1 id="access-gate-title">Connect your recordings</h1><p>Allow Voice Memos access or choose a folder of exported audio in Settings to get started.</p><button id="gate-settings" class="secondary">Open Settings…</button><span id="access-gate-status" role="status">Checking access…</span></section>
 <section id="home-view" aria-label="This week" hidden>
-  <div class="toolbar"><div><h1 id="home-title">This week</h1><p id="home-current"></p></div><button id="home-import" class="secondary">Set up timetable</button></div>
-  <div class="home-progress"><span id="home-coverage"></span><span id="home-captured"></span><span data-help="Matched counts past classes with a recording. Audio coverage measures recorded minutes inside those classes. Overlapping recordings count once; future and current classes are excluded."></span></div>
+  <div class="toolbar"><div><h1 id="home-title">This week</h1><p><span id="home-dates"></span><span id="home-current"></span></p></div><div class="actions home-actions"><div class="week-controls"><button id="home-previous" type="button" aria-label="Previous week">‹</button><button id="home-today" type="button">Today</button><button id="home-next" type="button" aria-label="Next week">›</button></div><button id="home-import" class="secondary">Set up timetable</button><button id="home-scan" type="button" class="primary">Scan recordings</button></div></div>
   <div id="home-calendar" role="region" aria-label="Current week calendar"></div>
+  <div class="home-progress"><span><span id="home-coverage"></span><span id="home-captured"></span><span data-help="Matched counts past classes with a recording. Audio coverage measures recorded minutes inside those classes. Overlapping recordings count once; future and current classes are excluded."></span></span><span>Original recordings stay on your Mac.</span></div>
 </section>
 <section id="recordings-view" aria-label="Recording library" hidden>
   <div class="toolbar"><div><h1>Recordings</h1><p id="queue-description">Your Voice Memos library.</p></div><div class="actions"><button id="scan" class="secondary">Scan recordings</button><button id="sync" class="primary">Convert & upload <span aria-hidden="true">↗</span></button></div></div>
@@ -27,7 +27,7 @@
 </section>
 <section id="setup-view" aria-label="Timetable and settings" hidden>
   <form id="setup-form" novalidate>
-    <div class="toolbar calendar-title"><h1>Timetable</h1><div class="actions"><button id="import-timetable" type="button" class="secondary">Import photo…</button><input id="timetable-image" type="file" accept="image/*,.heic,.heif" hidden><button id="add-slot" type="button" class="primary">+ Class</button></div></div>
+    <div class="toolbar calendar-title"><div><h1>Timetable</h1><p>Recurring weekly plan · Click or drag a class to edit its times.</p></div><div class="actions"><button id="import-timetable" type="button" class="secondary">Import photo…</button><input id="timetable-image" type="file" accept="image/*,.heic,.heif" hidden><button id="add-slot" type="button" class="secondary">+ Class</button><button type="submit" class="primary">Save timetable</button></div></div>
     <div id="timetable-import-status" role="status" aria-live="polite" hidden></div><details id="timetable-detected" hidden><summary>Detected text</summary><pre id="timetable-text"></pre></details>
     <div class="calendar-controls"><div class="week-controls"><button id="previous-week" type="button" aria-label="Previous week">‹</button><select id="calendar-week" aria-label="Week"></select><button id="next-week" type="button" aria-label="Next week">›</button></div><span id="calendar-draft"></span><span class="calendar-legend"><span aria-hidden="true">●</span> Recording</span></div>
     <div id="weekly-calendar" role="region" aria-label="Weekly timetable"></div><div id="incomplete-classes"></div>
@@ -38,7 +38,7 @@
       <label>Early start allowance (minutes)<input id="tolerance" type="number" min="0" max="60" required></label>
       <label class="check wide"><input id="auto-sync" type="checkbox"><span>Automatic sync</span></label>
     </div></details>
-    <div class="save-bar"><span id="save-help"></span><button type="submit" class="primary">Save setup</button></div>
+    <div class="save-bar"><span id="save-help"></span><span>Changes apply only after Save.</span></div>
   </form>
 </section>
 <section id="connection-view" aria-label="NotebookLM connection" hidden>

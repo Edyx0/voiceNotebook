@@ -1,4 +1,4 @@
-let homeSignature='',workspaceReady=false,sourcePathLoaded=false,uploadStage='options';
+let homeSignature='',homeWeek=null,workspaceReady=false,sourcePathLoaded=false,uploadStage='options';
 window.uploadRecordingIds=[];
 const permissionLabel={authorized:'Enabled',limited:'Selected photos only',notDetermined:'Optional',denied:'Off',restricted:'Restricted',unavailable:'Mac app required'};
 function nativeAction(action){if(native)native.postMessage({action});else notice('Open the Mac app to manage system access.',true);}
@@ -6,6 +6,11 @@ window.refreshAccess=async()=>{if(token)await action('/api/permissions/refresh',
 $('voice-grant').onclick=()=>nativeAction('fullDiskAccess');
 $('photos-grant').onclick=$('upload-photos-grant').onclick=()=>window.explainPhotos();
 $('home-import').onclick=()=>view('setup');
+$('home-scan').onclick=()=>$('scan').click();
+function setHomeWeek(week){homeWeek=week;homeSignature='';window.renderWorkflow();}
+$('home-previous').onclick=()=>setHomeWeek(homeWeek-1);
+$('home-next').onclick=()=>setHomeWeek(homeWeek+1);
+$('home-today').onclick=()=>setHomeWeek(state.overview.week);
 $('source-folder').onclick=()=>{if(native)nativeAction('chooseFolder');else $('source-path-input').focus();};
 window.openSettings=()=>{
   if(native&&!settingsWindow){nativeAction('settings');return;}
@@ -15,7 +20,7 @@ window.openSettings=()=>{
 };
 $('open-settings').onclick=$('gate-settings').onclick=window.openSettings;
 $('settings-close').onclick=()=>$('settings-dialog').close();
-$('settings-dialog').addEventListener('close',()=>{$('workspace-nav').after($('notice'));});
+$('settings-dialog').addEventListener('close',()=>{$('access-gate').before($('notice'));});
 if(settingsWindow){
   document.body.classList.add('settings-window');
   $('settings-content').prepend($('notice'));
@@ -57,7 +62,7 @@ function renderUpload(){
   if(!$('upload-photo-review').hidden)window.renderClassPhotos?.(state);
 }
 window.beginPhotoUpload=()=>{uploadStage='photo_upload';renderUpload();};
-function openClassRecordings(value){view('recordings');const matches=recordingMatches(value,state.overview.week,state.config.lectures);window.recordingScope=new Set(matches.map(r=>r.id));renderRecords();if(!matches.length)notice('No recording matched this class yet.');}
+function openClassRecordings(value){view('recordings');const matches=recordingMatches(value,homeWeek,state.config.lectures);window.recordingScope=new Set(matches.map(r=>r.id));renderRecords();if(!matches.length)notice('No recording matched this class yet.');}
 window.recordingInScope=recording=>!window.recordingScope||window.recordingScope.has(recording.id);
 document.querySelectorAll('.filter').forEach(button=>button.addEventListener('click',()=>{window.recordingScope=null;renderRecords();}));
 window.renderWorkflow=()=>{
@@ -82,14 +87,21 @@ window.renderWorkflow=()=>{
   else if(!workspaceReady)view(activeView);
   workspaceReady=ready;
   $('home-import').textContent=state.config.lectures.length?'Edit timetable':'Set up timetable';
-  $('home-title').textContent=overview.week?`Week ${overview.week}`:'This week';
+  if(homeWeek===null)homeWeek=overview.week||null;
+  if(homeWeek!==null)homeWeek=Math.max(1,Math.min(Number(state.config.semester_weeks)||16,homeWeek));
+  const currentWeek=homeWeek===overview.week,weekStart=homeWeek&&state.config.week_one?new Date(Date.parse(state.config.week_one+'T12:00:00Z')+(homeWeek-1)*604800000):null;
+  const formatDate=date=>new Intl.DateTimeFormat('en-GB',{timeZone:'UTC',day:'numeric',month:'short'}).format(date);
+  $('home-title').textContent=homeWeek?`Week ${homeWeek}`:'This week';
+  $('home-dates').textContent=weekStart?`${formatDate(weekStart)} – ${formatDate(new Date(weekStart.getTime()+6*86400000))}${currentWeek?' · ':''}`:'';
+  $('home-previous').disabled=!homeWeek||homeWeek<=1;$('home-next').disabled=!homeWeek||homeWeek>=Number(state.config.semester_weeks);$('home-today').disabled=!overview.week||currentWeek;
+  $('home-scan').disabled=state.job.busy;
   const displayTime=iso=>new Intl.DateTimeFormat('en-GB',{timeZone:state.config.timezone,hour:'2-digit',minute:'2-digit'}).format(new Date(iso));
-  $('home-current').textContent=overview.current?`Now · ${overview.current.course} until ${displayTime(overview.current.ends_at)}`:overview.next?`Next · ${overview.next.course} · ${new Intl.DateTimeFormat('en-GB',{timeZone:state.config.timezone,weekday:'short'}).format(new Date(overview.next.starts_at))} ${displayTime(overview.next.starts_at)}`:overview.week?'No more classes this week.':'';
-  $('home-coverage').textContent=overview.past_count?`${overview.matched_count} of ${overview.past_count} past classes matched`:overview.week?'No completed classes yet.':'';
-  $('home-captured').textContent=overview.coverage_percent==null?'':`${overview.coverage_percent}% audio coverage`;
-  const signature=JSON.stringify([state.config.lectures,state.config.week_one,overview.week,overview.classes,state.recordings,overview.now?.slice(0,16)]);
+  $('home-current').textContent=currentWeek?(overview.current?`Now · ${overview.current.course} until ${displayTime(overview.current.ends_at)}`:overview.next?`Next · ${overview.next.course} · ${new Intl.DateTimeFormat('en-GB',{timeZone:state.config.timezone,weekday:'short'}).format(new Date(overview.next.starts_at))} ${displayTime(overview.next.starts_at)}`:overview.week?'No more classes this week.':''):'';
+  $('home-coverage').textContent=currentWeek?(overview.past_count?`${overview.matched_count} of ${overview.past_count} past classes matched`:overview.week?'No completed classes yet.':''):'';
+  $('home-captured').textContent=currentWeek&&overview.coverage_percent!=null?`${overview.coverage_percent}% audio coverage`:'';
+  const signature=JSON.stringify([state.config.lectures,state.config.week_one,homeWeek,overview.classes,state.recordings,overview.now?.slice(0,16)]);
   if(signature!==homeSignature){homeSignature=signature;
-    if(overview.week&&state.config.lectures.length){const parts=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:state.config.timezone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date(overview.now)).map(p=>[p.type,p.value]));drawWeeklyCalendar($('home-calendar'),state.config.lectures,{week:overview.week,weekOne:state.config.week_one,classes:overview.classes,now:{date:`${parts.year}-${parts.month}-${parts.day}`,minute:Number(parts.hour)*60+Number(parts.minute)},onEdit:openClassRecordings,onMove:(value,change)=>moveWeeklyClass(value,change,true)});}
+    if(homeWeek&&state.config.lectures.length){const parts=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:state.config.timezone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date(overview.now)).map(p=>[p.type,p.value]));drawWeeklyCalendar($('home-calendar'),state.config.lectures,{week:homeWeek,weekOne:state.config.week_one,classes:currentWeek?overview.classes:[],now:currentWeek?{date:`${parts.year}-${parts.month}-${parts.day}`,minute:Number(parts.hour)*60+Number(parts.minute)}:null,onEdit:openClassRecordings,onMove:(value,change)=>moveWeeklyClass(value,change,true,homeWeek)});}
     else{const empty=el('div',null,'home-empty');empty.append(el('p',overview.season==='upcoming'?'Your semester hasn’t started yet.':overview.season==='ended'?'Your semester has ended.':'Add your timetable to see this week.'));$('home-calendar').replaceChildren(empty);}
   }
   renderUpload();

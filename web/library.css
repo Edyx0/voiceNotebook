@@ -1,7 +1,6 @@
-.recording-week{display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding:13px 16px;background:var(--surface);border-bottom:1px solid var(--charcoal);border-top:1px solid var(--charcoal)}
-.recording-week:first-child{border-top:0}
+.recording-week{display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding:14px 0;background:var(--white);border-bottom:1px solid var(--line);border-top:1px solid var(--silver)}
 .recording-week h2{font-size:14px;font-weight:650;margin:0}
-.recording-week>span{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.recording-week>span{font-size:13px;color:var(--muted)}
 .recording .row-actions{flex-wrap:wrap}
 .recording-audio{display:block;width:100%;min-width:180px;max-width:400px;height:36px;margin-top:12px}
 .recording-rename{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
