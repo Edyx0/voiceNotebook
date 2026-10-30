@@ -23,6 +23,18 @@ class RecordingLibraryTests(unittest.TestCase):
         for title in ('CSE211', 'window3', 'week 99', 'w0', 'week3notes', ''):
             self.assertIsNone(title_weeks(title))
 
+    def test_photo_picker_orders_recent_activity_and_keeps_local_edits(self):
+        library = self.app.library
+        older = datetime.fromisoformat('2025-01-01T00:00:00+00:00')
+        newer = datetime.fromisoformat('2025-02-01T00:00:00+00:00')
+        notebooks = [SimpleNamespace(id='older', title='A', created_at=older, last_viewed_at=older),
+                     SimpleNamespace(id='newer', title='B', created_at=older, last_viewed_at=newer)]
+        library.cache_notebooks(notebooks)
+        self.assertEqual([item['id'] for item in self.app.status()['notebook_catalog']], ['newer', 'older'])
+        library.mark_notebook_edit('older')
+        library.cache_notebooks(notebooks)
+        self.assertEqual([item['id'] for item in self.app.status()['notebook_catalog']], ['older', 'newer'])
+
     def test_recent_notebook_week_labels_dates_and_preserves_assignments(self):
         library = self.app.library
         library.cache_notebooks([

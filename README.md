@@ -22,6 +22,7 @@ A local lecture library for your Mac. Match recordings to a timetable, then send
 - Creates or reuses one NotebookLM notebook per course and week. Saved progress avoids duplicate uploads after an interruption.
 - Collects existing weekly notebook sources in a separate `COURSE · All weeks` notebook. New uploads and approved photos are copied there too; use **Update notebooks** to include sources added directly in NotebookLM.
 - Optionally finds class photos inside uploaded lecture windows. Every photo needs review and approval before upload.
+- Use the photo icon in the toolbar to add photos from the Mac file picker or its Photos library sidebar. Choose any connected notebook and review the selection before uploading; each photo is converted to a PDF with local text recognition when available. The list puts recent views and uploads first; NotebookLM does not expose a reliable last-edited timestamp.
 - Recovers rejected lecture images with a local searchable PDF that preserves the complete image.
 - Offers local playback, local display names, native Mac menus, keyboard controls and a resizable workspace.
 

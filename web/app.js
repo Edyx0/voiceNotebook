@@ -185,6 +185,7 @@ async function refresh() {
     if(!setupLoaded){const c=state.config;for(const [id,key] of [['week-one','week_one'],['semester-weeks','semester_weeks'],['timezone','timezone'],['tolerance','tolerance_minutes'],['folder','recordings_folder'],['prefix','notebook_prefix']])$(id).value=c[key];$('auto-sync').checked=c.auto_sync;c.lectures.forEach(slot);setupLoaded=true;}
     $('count').textContent=state.recordings.length;
     renderCourseNotebooks();
+    window.renderSelectedPhotos?.(state);
     renderRecordingQueue();
     $('activity').textContent=state.job.busy?state.job.message:(state.config.auto_sync?'AUTO SYNC / EVERY MINUTE':'MANUAL SYNC');
     $('source-label').textContent=state.config.recordings_folder.includes('com.apple.VoiceMemos')?'Voice Memos':'Audio folder';

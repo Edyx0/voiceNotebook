@@ -1,5 +1,5 @@
 """Local recording labels, playback copies, and weeks read from NotebookLM."""
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 import re
 import threading
@@ -26,18 +26,28 @@ class RecordingLibrary:
             db.executescript("""
                 CREATE TABLE IF NOT EXISTS recording_labels (id TEXT PRIMARY KEY, name TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS notebook_catalog (id TEXT PRIMARY KEY, title TEXT, created_at TEXT);
+                CREATE TABLE IF NOT EXISTS notebook_activity (id TEXT PRIMARY KEY, viewed_at TEXT, edited_at TEXT);
             """)
 
     def cache_notebooks(self, notebooks):
         values = []
+        viewed = []
         for notebook in notebooks:
             if not isinstance(getattr(notebook, "id", None), str):
                 continue
             created = getattr(notebook, "created_at", None)
             values.append((notebook.id, notebook.title or "", created.isoformat() if isinstance(created, datetime) else None))
+            last_viewed = getattr(notebook, 'last_viewed_at', None)
+            viewed.append((notebook.id, last_viewed.isoformat() if isinstance(last_viewed, datetime) else None))
         with self.app.db() as db:
             db.execute("DELETE FROM notebook_catalog")
             db.executemany("INSERT INTO notebook_catalog VALUES(?,?,?)", values)
+            db.executemany('INSERT INTO notebook_activity(id,viewed_at) VALUES(?,?) ON CONFLICT(id) DO UPDATE SET viewed_at=excluded.viewed_at', viewed)
+
+    def mark_notebook_edit(self, notebook_id):
+        with self.app.db() as db:
+            db.execute('INSERT INTO notebook_activity(id,edited_at) VALUES(?,?) ON CONFLICT(id) DO UPDATE SET edited_at=excluded.edited_at',
+                       (notebook_id, datetime.now(timezone.utc).isoformat()))
 
     def annotate(self, recordings):
         with self.app.db() as db:

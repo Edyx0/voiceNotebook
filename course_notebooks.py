@@ -159,6 +159,7 @@ class CourseNotebooks:
                 await client.sources.delete(target, progress['failed_source_id'])
         with self.app.db() as db:
             db.execute("UPDATE course_sources SET status='done' WHERE course=? AND origin_notebook_id=? AND origin_source_id=?", key)
+        self.app.library.mark_notebook_edit(target)
 
     async def download_image(self, url):
         import httpx

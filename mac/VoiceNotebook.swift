@@ -258,9 +258,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         let panel = NSOpenPanel()
         panel.canChooseDirectories = false
         panel.canChooseFiles = true
-        panel.allowsMultipleSelection = false
+        panel.allowsMultipleSelection = parameters.allowsMultipleSelection
         panel.allowedFileTypes = ["jpg", "jpeg", "png", "heic", "heif", "tiff", "bmp"]
-        panel.prompt = "Read Timetable"
+        panel.prompt = parameters.allowsMultipleSelection ? "Choose Photos" : "Choose Photo"
         panel.beginSheetModal(for: window) { response in completionHandler(response == .OK ? panel.urls : nil) }
     }
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {

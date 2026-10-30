@@ -488,6 +488,7 @@ class App:
             with self.db() as db:
                 db.execute("UPDATE parts SET status='done' WHERE recording_id=? AND name=?", (rid, part.name))
         self.update(rid, status="uploaded", error=None)
+        self.library.mark_notebook_edit(nb_id)
 
     def login(self, presentation="browser"):
         with self.guard:
@@ -593,10 +594,16 @@ class App:
             login_saved = False
         records=self.records()
         permissions=self.access.read(self.config['recordings_folder'])
+        with self.db() as db:
+            notebooks = [dict(row) for row in db.execute('''SELECT c.id, c.title FROM notebook_catalog c
+                LEFT JOIN notebook_activity a ON a.id=c.id
+                ORDER BY MAX(COALESCE(a.viewed_at,''), COALESCE(a.edited_at,''), COALESCE(c.created_at,'')) DESC,
+                         c.title COLLATE NOCASE''')]
         return {"config": self.config, "recordings": records, "job": dict(self.job),
                 "overview":weekly_overview(records,self.config),"permissions":permissions,"upload_batch":dict(self.upload_batch),
                 "photos": self.photos.records(), "photos_available": permissions['photos_enabled'],
                 "course_notebooks": self.course_notebooks.records(),
+                "notebook_catalog": notebooks,
                 "course_notebook_ambiguities": self.course_notebooks.ambiguities(),
                 "auth": dict(self.auth),
                 "dependencies": {"ffmpeg": bool(shutil.which("ffmpeg")),
@@ -638,7 +645,7 @@ def serve(app, port, open_browser=False, ready_file=None):
             self.send_header("Content-Length", str(len(payload)))
             self.send_header("Cache-Control", "no-store")
             self.send_header("X-Content-Type-Options", "nosniff")
-            self.send_header("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-ancestors 'none'")
+            self.send_header("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'")
             self.end_headers()
             self.wfile.write(payload)
 
@@ -722,7 +729,7 @@ def serve(app, port, open_browser=False, ready_file=None):
                 return self.reply(403, {"error": "Reload the app and try again."})
             try:
                 size = int(self.headers.get("Content-Length", "0"))
-                limit = 28_100_000 if self.path == "/api/timetable/photo" else 100_000
+                limit = 28_100_000 if self.path in ("/api/timetable/photo", "/api/photos/selected") else 100_000
                 if not 0 <= size <= limit:
                     raise ValueError("Request too large.")
                 value = json.loads(self.rfile.read(size) or b"{}")
@@ -737,6 +744,8 @@ def serve(app, port, open_browser=False, ready_file=None):
                     app.access.read(app.config['recordings_folder'],force=True)
                 elif self.path == "/api/photos/scan":
                     app.start("photos-scan",recording_ids=value.get('recording_ids'))
+                elif self.path == "/api/photos/selected":
+                    return self.reply(200, {'id': app.photos.add_selected(value.get('content'), value.get('notebook_id'))})
                 elif self.path == "/api/photos/sync":
                     app.start("photos-sync",photo_ids=value.get('ids'))
                 elif self.path == "/api/course-notebooks/sync":

@@ -1,4 +1,88 @@
 (() => {
+  const selectedDialog = $('selected-photos-dialog'), selectedInput = $('selected-photos-input');
+  const selectedNotebook = $('selected-photos-notebook'), selectedMessage = $('selected-photos-message');
+  let selectedFiles = [], selectedURLs = [], selectedBusy = false, notebookSignature = '';
+  function clearSelected(resetInput = true) {
+    selectedURLs.forEach(URL.revokeObjectURL); selectedURLs = []; selectedFiles = [];
+    if (resetInput) selectedInput.value = ''; $('selected-photos-preview').replaceChildren();
+  }
+  function selectedControls() {
+    $('selected-photos-upload').disabled = selectedBusy || !!state?.job?.busy || !selectedFiles.length || !selectedNotebook.value;
+    $('selected-photos-choose').disabled = selectedBusy || !!state?.job?.busy;
+    selectedNotebook.disabled = selectedBusy || !!state?.job?.busy;
+  }
+  $('add-gallery-photos').onclick = () => { selectedMessage.textContent = ''; window.renderSelectedPhotos(state); selectedDialog.showModal(); };
+  $('selected-photos-close').onclick = () => selectedDialog.close();
+  selectedDialog.addEventListener('cancel', event => { if (selectedBusy) event.preventDefault(); });
+  selectedDialog.addEventListener('close', () => clearSelected());
+  $('selected-photos-choose').onclick = () => selectedInput.click();
+  selectedNotebook.onchange = selectedControls;
+  selectedInput.onchange = () => {
+    const files = Array.from(selectedInput.files); clearSelected(false); selectedFiles = files;
+    for (const file of files) {
+      const url = URL.createObjectURL(file); selectedURLs.push(url);
+      const image = el('img'); image.src = url; image.alt = file.name || 'Selected photo';
+      $('selected-photos-preview').append(image);
+    }
+    selectedMessage.textContent = files.length ? `${files.length} photo${files.length === 1 ? '' : 's'} selected. Review them before adding.` : '';
+    selectedControls();
+  };
+  async function jpegData(file) {
+    const url = URL.createObjectURL(file);
+    try {
+      const image = new Image(); image.src = url; await image.decode();
+      const canvas = document.createElement('canvas'); canvas.width = image.naturalWidth; canvas.height = image.naturalHeight;
+      if (!canvas.width || !canvas.height) throw Error('Could not read this photo.');
+      const context = canvas.getContext('2d'); if (!context) throw Error('Could not prepare this photo.');
+      context.fillStyle = '#fff'; context.fillRect(0, 0, canvas.width, canvas.height); context.drawImage(image, 0, 0);
+      const data = canvas.toDataURL('image/jpeg', 0.92);
+      if (data.length > 26600000) throw Error('Photo is too large. Choose a smaller image.');
+      return data;
+    } finally { URL.revokeObjectURL(url); }
+  }
+  $('selected-photos-upload').onclick = async () => {
+    if (selectedBusy || !selectedFiles.length || !selectedNotebook.value) return;
+    selectedBusy = true; $('selected-photos-close').disabled = true; selectedControls(); const ids = [];
+    try {
+      for (const file of selectedFiles) {
+        selectedMessage.textContent = `Preparing ${ids.length + 1} of ${selectedFiles.length}…`;
+        const content = await jpegData(file);
+        const result = await request('/api/photos/selected', {content, notebook_id: selectedNotebook.value}); ids.push(result.id);
+      }
+      clearSelected();
+      await request('/api/photos/sync', {ids});
+      selectedMessage.textContent = 'Uploading selected photos. Check their status below.';
+    } catch (error) {
+      if (ids.length) {
+        clearSelected();
+        selectedMessage.textContent = `${error.message} ${ids.length} photo(s) were saved; use Upload saved photos below.`;
+      } else selectedMessage.textContent = error.message;
+    } finally { selectedBusy = false; $('selected-photos-close').disabled = false; selectedControls(); await refresh(); }
+  };
+  window.renderSelectedPhotos = current => {
+    if (!current) return;
+    const signature = JSON.stringify(current.notebook_catalog || []);
+    if (signature !== notebookSignature) {
+      const old = selectedNotebook.value; notebookSignature = signature;
+      selectedNotebook.replaceChildren();
+      for (const item of current.notebook_catalog || []) { const option = el('option', item.title?.trim() || 'Untitled notebook'); option.value = item.id; selectedNotebook.append(option); }
+      selectedNotebook.value = old;
+    }
+    selectedControls();
+    if (!selectedDialog.open) return;
+    const root = $('selected-photos-history'); root.replaceChildren();
+    for (const photo of (current.photos || []).filter(p => p.label === 'Selected photo').slice(0, 20)) {
+      const row = el('div', null, 'selected-photo-row'), image = el('img'); image.src = `/api/photos/image/${photo.id}`; image.alt = 'Selected photo';
+      const description = el('div'); description.append(el('strong', photo.title), el('p', photo.error || ({approved:'Ready to upload', uploading:'Uploading…', uploaded:'Uploaded', error:'Upload needs attention'}[photo.status] || photo.status), photo.error ? 'error-text' : 'hint'));
+      row.append(image, description);
+      if (['approved', 'error'].includes(photo.status)) {
+        const button = el('button', photo.status === 'error' ? 'Retry' : 'Upload saved photo', 'secondary'); button.disabled = selectedBusy || current.job.busy;
+        button.onclick = async () => { if (photo.status === 'error' && !await action('/api/photos/review', {id:photo.id,action:'retry'}, '')) return; await action('/api/photos/sync', {ids:[photo.id]}, 'Uploading selected photo…'); };
+        row.append(button);
+      }
+      root.append(row);
+    }
+  };
   let rendered = '', photoIndex = 0;
   window.resetPhotoReview = () => { photoIndex = 0; rendered = ''; };
   const labels = {review:'Needs approval',approved:'Approved',skipped:'Skipped',uploaded:'Uploaded',uploading:'Uploading…',error:'Needs attention'};

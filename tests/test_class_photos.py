@@ -1,4 +1,5 @@
 import asyncio
+import base64
 from datetime import datetime
 import hashlib
 import json
@@ -48,6 +49,45 @@ class PhotoTests(unittest.TestCase):
                                   add_file=AsyncMock(return_value=SimpleNamespace(id="source",title="photo")),
                                   wait_until_ready=AsyncMock())
         return SimpleNamespace(sources=sources)
+
+    def test_selected_photo_requires_known_notebook_and_uses_pdf_upload(self):
+        content = 'data:image/jpeg;base64,' + base64.b64encode(b'\xff\xd8\xffsynthetic').decode()
+        with self.assertRaisesRegex(ValueError, 'available notebook'):
+            self.app.photos.add_selected(content, 'missing')
+        with self.app.db() as db:
+            db.execute('INSERT INTO notebook_catalog(id,title) VALUES(?,?)', ('target', 'My notebook'))
+        with self.assertRaisesRegex(ValueError, 'read this photo'):
+            self.app.photos.add_selected('invalid', 'target')
+        pid = self.app.photos.add_selected(content, 'target')
+        row = next(item for item in self.app.photos.records() if item['id'] == pid)
+        self.assertEqual((row['status'], row['notebook_id']), ('approved', 'target'))
+        helper = Path(self.tmp.name) / 'helper'
+        helper.touch()
+        def convert(args, **kwargs):
+            Path(args[-1]).write_bytes(b'%PDF synthetic document')
+            return SimpleNamespace(returncode=0)
+        client = self.client()
+        with patch.dict('os.environ', {'VOICE_NOTEBOOK_PHOTOS_HELPER': str(helper)}), patch('class_photos.subprocess.run', side_effect=convert):
+            asyncio.run(self.app.photos.upload_one(client, row))
+        self.assertEqual(client.sources.add_file.await_args.args[0], 'target')
+        self.assertEqual(client.sources.add_file.await_args.args[1].suffix, '.pdf')
+        self.assertEqual(next(item for item in self.app.photos.records() if item['id'] == pid)['status'], 'uploaded')
+
+    def test_selected_photo_sync_does_not_require_library_permission(self):
+        with self.app.db() as db:
+            db.execute('INSERT INTO notebook_catalog(id,title) VALUES(?,?)', ('target', 'My notebook'))
+        content = 'data:image/jpeg;base64,' + base64.b64encode(b'\xff\xd8\xffsynthetic').decode()
+        pid = self.app.photos.add_selected(content, 'target')
+        client = self.client()
+        class Session:
+            async def __aenter__(self): return client
+            async def __aexit__(self, *args): return False
+        with patch.object(self.app.access, 'read', return_value={'photos_enabled': False}), \
+             patch('notebooklm.NotebookLMClient.from_storage', return_value=Session()), \
+             patch('class_photos.configure_file_uploads'), \
+             patch.object(self.app.photos, 'upload_one', new_callable=AsyncMock) as upload:
+            asyncio.run(self.app.photos.sync([pid]))
+            upload.assert_awaited_once()
 
     def test_windows_use_uploaded_classes_timezone_and_full_lecture(self):
         self.assertEqual(len(self.windows), 1)

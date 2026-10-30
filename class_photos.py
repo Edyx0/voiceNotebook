@@ -1,12 +1,15 @@
 """Local review queue for Apple Photos. Only approved images can leave the Mac."""
 import asyncio
-from datetime import datetime, timedelta
+import base64
+import binascii
+from datetime import datetime, timedelta, timezone
 import hashlib
 import json
 import os
 import re
 from pathlib import Path
 import subprocess
+import secrets
 from zoneinfo import ZoneInfo
 from notebook_uploads import configure_file_uploads
 
@@ -55,6 +58,36 @@ class ClassPhotos:
             captured=datetime.fromisoformat(row['captured_at']).timestamp()
             row['recording_ids']=[w['recording_id'] for w in windows if w['start']<=captured<w['end'] and any(d['notebook_id']==w['notebook_id'] for d in row['destinations'])]
         return rows
+
+    def add_selected(self, content, notebook_id):
+        """Store an explicitly selected image for the approved upload queue."""
+        with self.app.guard:
+            if self.app.job['busy']:
+                raise ValueError('Wait for the current operation before adding photos.')
+            with self.app.db() as db:
+                notebook = db.execute('SELECT title FROM notebook_catalog WHERE id=?', (notebook_id,)).fetchone()
+                if not notebook:
+                    raise ValueError('Choose an available notebook. Check the connection to refresh the list.')
+                if not isinstance(content, str) or not content.startswith('data:image/jpeg;base64,'):
+                    raise ValueError('Could not read this photo. Choose it again.')
+                try:
+                    data = base64.b64decode(content.split(',', 1)[1], validate=True)
+                except (ValueError, binascii.Error):
+                    raise ValueError('Could not read this photo. Choose it again.') from None
+                if not data.startswith(b'\xff\xd8\xff') or len(data) > 20_000_000:
+                    raise ValueError('Photo must be a JPEG under 20 MB.')
+                pid = secrets.token_hex(32)
+                path = self.folder / f'{pid}.jpg'
+                path.write_bytes(data)
+                title = notebook['title'].strip() or 'Untitled notebook'
+                choice = {'notebook_id': notebook_id, 'title': title}
+                try:
+                    db.execute("INSERT INTO class_photos(id,captured_at,label,destinations,notebook_id,title,status,digest) VALUES(?,?,?,?,?,?,?,?)",
+                               (pid, datetime.now(timezone.utc).isoformat(), 'Selected photo', json.dumps([choice]), notebook_id, title, 'approved', hashlib.sha256(data).hexdigest()))
+                except Exception:
+                    path.unlink(missing_ok=True)
+                    raise
+                return pid
 
     def scan(self, recording_ids=None):
         helper = os.environ.get("VOICE_NOTEBOOK_PHOTOS_HELPER")
@@ -138,7 +171,8 @@ class ClassPhotos:
                     raise ValueError("This photo cannot be changed in its current state.")
 
     async def sync(self, photo_ids=None):
-        if not self.app.access.read(self.app.config['recordings_folder'])['photos_enabled']:
+        selected = [row for row in self.records() if row['status'] == 'approved' and (photo_ids is None or row['id'] in photo_ids)]
+        if any(row.get('label') != 'Selected photo' for row in selected) and not self.app.access.read(self.app.config['recordings_folder'])['photos_enabled']:
             raise ValueError("Enable Photos access to upload class photos, or continue with audio only.")
         from notebooklm import NotebookLMClient
         async with NotebookLMClient.from_storage() as client:
@@ -174,6 +208,14 @@ class ClassPhotos:
         if hashlib.sha256(upload.read_bytes()).hexdigest() != row["digest"]:
             raise ValueError("Upload copy changed. Upload stopped.")
         document = upload.with_name(upload.stem + "_OCR.pdf")
+        if row.get('label') == 'Selected photo' and not document.is_file():
+            helper = os.environ.get('VOICE_NOTEBOOK_PHOTOS_HELPER')
+            if not helper or not Path(helper).is_file():
+                raise ValueError('Photo conversion requires the voiceNotebook Mac app.')
+            self.app.job['message'] = 'Preparing selected photo as a searchable PDF…'
+            result = await asyncio.to_thread(subprocess.run, [helper, '--photo-document', str(path), str(document)], capture_output=True, timeout=180)
+            if result.returncode or not document.is_file():
+                raise ValueError('Could not convert this photo to PDF. Retry or choose another photo.')
         if document.is_file():
             upload = document
         sources = await client.sources.list(nb)
@@ -216,6 +258,7 @@ class ClassPhotos:
             raise
         with self.app.db() as db:
             db.execute("UPDATE class_photos SET status='uploaded',error=NULL WHERE id=?", (row["id"],))
+        self.app.library.mark_notebook_edit(nb)
 
     async def recover_document(self, client, row, image, document, source_id, helper):
         self.app.job["message"] = "Reading the approved photo on this Mac for a searchable PDF…"

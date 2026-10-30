@@ -17,9 +17,6 @@ func makePhotoDocument(imagePath: String, outputPath: String) {
         try VNImageRequestHandler(url: url).perform([request])
         let lines = (request.results ?? []).sorted { $0.boundingBox.midY > $1.boundingBox.midY }
             .compactMap { $0.topCandidates(1).first?.string }
-        guard !lines.isEmpty else {
-            throw NSError(domain: "PhotoDocument", code: 2, userInfo: [NSLocalizedDescriptionKey: "No readable text was found in this photo."])
-        }
         let data = NSMutableData()
         var imageBox = CGRect(x: 0, y: 0, width: cgImage.width, height: cgImage.height)
         guard let consumer = CGDataConsumer(data: data),
@@ -30,6 +27,7 @@ func makePhotoDocument(imagePath: String, outputPath: String) {
         context.draw(cgImage, in: imageBox)
         context.endPDFPage()
 
+        if !lines.isEmpty {
         let paragraph = NSMutableParagraphStyle()
         paragraph.lineBreakMode = .byWordWrapping
         let text = NSAttributedString(string: "Local automatic text recognition may contain errors. The original photo is on page 1.\n\n" + lines.joined(separator: "\n"),
@@ -43,6 +41,7 @@ func makePhotoDocument(imagePath: String, outputPath: String) {
         text.draw(with: NSRect(x: 40, y: 40, width: 515, height: textBox.height - 80), options: [.usesLineFragmentOrigin, .usesFontLeading])
         NSGraphicsContext.restoreGraphicsState()
         context.endPDFPage()
+        }
         context.closePDF()
         try (data as Data).write(to: URL(fileURLWithPath: outputPath), options: .atomic)
     } catch {
