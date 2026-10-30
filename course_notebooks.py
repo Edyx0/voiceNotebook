@@ -1,7 +1,12 @@
 """Keep an all-weeks notebook in sync with each course's existing sources."""
 import asyncio
+import hashlib
 import json
+import os
+from pathlib import Path
 import re
+import subprocess
+from urllib.parse import urljoin, urlsplit
 
 
 COURSE = re.compile(r"[A-Z]{2,8}\d{3}")
@@ -24,6 +29,10 @@ class CourseNotebooks:
                 CREATE TABLE IF NOT EXISTS course_notebook_ambiguities
                     (notebook_id TEXT PRIMARY KEY, title TEXT NOT NULL, courses TEXT NOT NULL);
             """)
+            columns = {row[1] for row in db.execute("PRAGMA table_info(course_sources)")}
+            for column in ("failed_source_id", "recovery_title", "recovery_digest"):
+                if column not in columns:
+                    db.execute(f"ALTER TABLE course_sources ADD COLUMN {column} TEXT")
 
     def records(self):
         with self.app.db() as db:
@@ -113,26 +122,105 @@ class CourseNotebooks:
             existing = await client.sources.list(target, strict=True)
             if progress:
                 before = set(json.loads(progress["previous_ids"]))
-                candidates = [item for item in existing if item.id not in before and item.title == progress["title"]]
+                wanted = progress["recovery_title"] if progress["status"] == "recovery_pending" else progress["title"]
+                candidates = [item for item in existing if item.id not in before and item.title == wanted]
                 if len(candidates) != 1:
                     raise ValueError(f"Copy of {source.title or 'a source'} is uncertain. Check the course notebook before retrying.")
                 target_id = candidates[0].id
             else:
                 with self.app.db() as db:
-                    db.execute("INSERT INTO course_sources VALUES(?,?,?,NULL,?,'pending',?)", (*key, source.title, json.dumps([item.id for item in existing])))
+                    db.execute("INSERT INTO course_sources(course,origin_notebook_id,origin_source_id,target_source_id,title,status,previous_ids) VALUES(?,?,?,NULL,?,'pending',?)", (*key, source.title, json.dumps([item.id for item in existing])))
                 self.app.job["message"] = f"Copying sources to {course} · All weeks…"
                 copies = await client.sources.copy(origin, [source.id], target)
                 if len(copies) != 1 or copies[0].original_id != source.id or not copies[0].source.id:
                     raise ValueError(f"Copy of {source.title or 'a source'} is uncertain. Check the course notebook before retrying.")
                 target_id = copies[0].source.id
             with self.app.db() as db:
-                db.execute("UPDATE course_sources SET target_source_id=?,status='processing' WHERE course=? AND origin_notebook_id=? AND origin_source_id=?", (target_id, *key))
+                status = 'recovery_processing' if progress and progress['status'] == 'recovery_pending' else 'processing'
+                db.execute("UPDATE course_sources SET target_source_id=?,status=? WHERE course=? AND origin_notebook_id=? AND origin_source_id=?", (target_id, status, *key))
         return target, target_id, key
 
     async def finish_source(self, client, target, target_id, key):
-        await client.sources.wait_until_ready(target, target_id, timeout=1200)
+        from notebooklm.exceptions import SourceProcessingError
+        with self.app.db() as db:
+            progress = db.execute("SELECT * FROM course_sources WHERE course=? AND origin_notebook_id=? AND origin_source_id=?", key).fetchone()
+        try:
+            await client.sources.wait_until_ready(target, target_id, timeout=1200)
+        except SourceProcessingError:
+            if progress['status'] == 'recovery_processing':
+                raise
+            target_id = await self.recover_image(client, target, target_id, key)
+            await client.sources.wait_until_ready(target, target_id, timeout=1200)
+            with self.app.db() as db:
+                progress = db.execute("SELECT * FROM course_sources WHERE course=? AND origin_notebook_id=? AND origin_source_id=?", key).fetchone()
+        if progress['failed_source_id']:
+            existing = await client.sources.list(target, strict=True)
+            if any(item.id == progress['failed_source_id'] for item in existing):
+                await client.sources.delete(target, progress['failed_source_id'])
         with self.app.db() as db:
             db.execute("UPDATE course_sources SET status='done' WHERE course=? AND origin_notebook_id=? AND origin_source_id=?", key)
+
+    async def download_image(self, url):
+        import httpx
+        from notebooklm.auth import load_httpx_cookies
+        async with httpx.AsyncClient(cookies=load_httpx_cookies(), timeout=30, follow_redirects=False) as http:
+            for _ in range(4):
+                parsed = urlsplit(url)
+                if parsed.scheme != 'https' or parsed.hostname not in ('lh3.googleusercontent.com', 'lh3.google.com'):
+                    raise ValueError("The original image is not available from a trusted Google host.")
+                async with http.stream('GET', url) as response:
+                    if response.is_redirect:
+                        url = urljoin(url, response.headers.get('location', ''))
+                        continue
+                    response.raise_for_status()
+                    if not response.headers.get('content-type', '').lower().startswith('image/jpeg'):
+                        raise ValueError("The original image could not be downloaded.")
+                    data = bytearray()
+                    async for block in response.aiter_bytes():
+                        data.extend(block)
+                        if len(data) > 20_000_000:
+                            raise ValueError("The original image is too large to recover.")
+                    if not data.startswith(b'\xff\xd8'):
+                        raise ValueError("The original image is not a valid JPEG.")
+                    return bytes(data)
+            raise ValueError("The original image redirected too many times.")
+
+    async def recover_image(self, client, target, failed_id, key):
+        origin = await client.sources.get(key[1], key[2])
+        helper = os.environ.get('VOICE_NOTEBOOK_PHOTOS_HELPER')
+        if not helper or not Path(helper).is_file() or not re.fullmatch(r'[0-9a-fA-F-]{36}', key[2]) or not (origin.title or '').lower().endswith(('.jpg', '.jpeg')) or not origin.download_url:
+            raise ValueError("NotebookLM could not process this source. The original remains in its weekly notebook.")
+        folder = self.app.home / 'course-photo-recovery'
+        folder.mkdir(parents=True, exist_ok=True, mode=0o700)
+        image = folder / f'{key[2]}.jpg'
+        document = folder / f'{key[2]}_OCR.pdf'
+        if not image.exists():
+            image.write_bytes(await self.download_image(origin.download_url))
+        image_digest = hashlib.sha256(image.read_bytes()).hexdigest()
+        if not document.exists():
+            self.app.job['message'] = 'Preparing a searchable copy of an existing class photo…'
+            result = await asyncio.to_thread(subprocess.run, [helper, '--photo-document', str(image), str(document)], capture_output=True, timeout=180)
+            if result.returncode or not document.is_file() or not document.stat().st_size:
+                raise ValueError("The existing photo could not be converted to a searchable PDF.")
+        if hashlib.sha256(image.read_bytes()).hexdigest() != image_digest or not document.read_bytes().startswith(b'%PDF-'):
+            raise ValueError("The photo recovery copy changed. Upload stopped.")
+        digest = hashlib.sha256(document.read_bytes()).hexdigest()
+        existing = await client.sources.list(target, strict=True)
+        with self.app.db() as db:
+            db.execute("UPDATE course_sources SET target_source_id=NULL,status='recovery_pending',failed_source_id=?,recovery_title=?,recovery_digest=?,previous_ids=? WHERE course=? AND origin_notebook_id=? AND origin_source_id=?", (failed_id, document.name, digest, json.dumps([item.id for item in existing]), *key))
+        try:
+            uploaded = await client.sources.add_file(target, document, wait=False)
+        except Exception as exc:
+            if getattr(exc, 'source_id', None):
+                with self.app.db() as db:
+                    db.execute("UPDATE course_sources SET target_source_id=?,status='recovery_processing' WHERE course=? AND origin_notebook_id=? AND origin_source_id=?", (exc.source_id, *key))
+            elif getattr(exc, 'upload_started', None) is False:
+                with self.app.db() as db:
+                    db.execute("UPDATE course_sources SET target_source_id=?,status='processing',failed_source_id=NULL,recovery_title=NULL,recovery_digest=NULL WHERE course=? AND origin_notebook_id=? AND origin_source_id=?", (failed_id, *key))
+            raise
+        with self.app.db() as db:
+            db.execute("UPDATE course_sources SET target_source_id=?,status='recovery_processing' WHERE course=? AND origin_notebook_id=? AND origin_source_id=?", (uploaded.id, *key))
+        return uploaded.id
 
     async def sync(self):
         from notebooklm import NotebookLMClient

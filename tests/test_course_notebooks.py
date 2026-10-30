@@ -1,5 +1,7 @@
 import asyncio
 from pathlib import Path
+import subprocess
+import sys
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 import unittest
@@ -100,6 +102,64 @@ class CourseNotebookTests(unittest.TestCase):
             self.app.start('photos-sync', photo_ids=['photo'])
         photos.assert_awaited_once_with(['photo'])
         courses.assert_awaited_once()
+
+    def test_failed_image_copy_recovers_to_local_pdf_before_removing_failed_copy(self):
+        from notebooklm.exceptions import SourceProcessingError
+        source_id = '12345678-1234-1234-1234-123456789abc'
+        key = ('EE211', 'week', source_id)
+        with self.app.db() as db:
+            db.execute("INSERT INTO course_sources(course,origin_notebook_id,origin_source_id,target_source_id,title,status,previous_ids) VALUES(?,?,?,?,?,'processing','[]')", (*key, 'failed', 'board.jpg'))
+        origin = SimpleNamespace(title='board.jpg', download_url='https://lh3.googleusercontent.com/image')
+        client = SimpleNamespace(sources=SimpleNamespace(
+            get=AsyncMock(return_value=origin), list=AsyncMock(return_value=[source('failed','board.jpg')]),
+            add_file=AsyncMock(return_value=source('pdf','pdf')), delete=AsyncMock(),
+            wait_until_ready=AsyncMock(side_effect=[SourceProcessingError('failed'), None])))
+        def make_pdf(command, **kwargs):
+            self.assertEqual(Path(command[2]).read_bytes(), b'\xff\xd8original')
+            Path(command[3]).write_bytes(b'%PDF-original-image-and-text')
+            return subprocess.CompletedProcess(command, 0)
+        with patch.dict('os.environ', {'VOICE_NOTEBOOK_PHOTOS_HELPER': sys.executable}), \
+             patch.object(self.app.course_notebooks, 'download_image', new_callable=AsyncMock, return_value=b'\xff\xd8original'), \
+             patch('course_notebooks.subprocess.run', side_effect=make_pdf):
+            asyncio.run(self.app.course_notebooks.finish_source(client, 'course', 'failed', key))
+        client.sources.add_file.assert_awaited_once()
+        client.sources.delete.assert_awaited_once_with('course', 'failed')
+        with self.app.db() as db:
+            row = db.execute('SELECT status,target_source_id FROM course_sources WHERE origin_source_id=?', (source_id,)).fetchone()
+        self.assertEqual(tuple(row), ('done', 'pdf'))
+
+    def test_untrusted_download_host_is_rejected(self):
+        with patch('notebooklm.auth.load_httpx_cookies', return_value={}), self.assertRaisesRegex(ValueError, 'trusted Google host'):
+            asyncio.run(self.app.course_notebooks.download_image('https://example.com/photo.jpg'))
+
+    def test_lost_pdf_upload_response_is_reconciled_without_resending(self):
+        from notebooklm.exceptions import SourceProcessingError
+        source_id = '87654321-4321-4321-4321-cba987654321'
+        key = ('EE211', 'week', source_id)
+        with self.app.db() as db:
+            db.execute("INSERT INTO course_sources(course,origin_notebook_id,origin_source_id,target_source_id,title,status,previous_ids) VALUES(?,?,?,?,?,'processing','[]')", (*key, 'failed', 'board.jpg'))
+        origin = SimpleNamespace(id=source_id,title='board.jpg',download_url='https://lh3.googleusercontent.com/image')
+        existing = [source('failed','board.jpg')]
+        client = SimpleNamespace(sources=SimpleNamespace(get=AsyncMock(return_value=origin),
+            list=AsyncMock(side_effect=lambda *args, **kwargs: list(existing)), add_file=AsyncMock(side_effect=TimeoutError('lost response')),
+            delete=AsyncMock(), wait_until_ready=AsyncMock(side_effect=SourceProcessingError('failed'))))
+        def make_pdf(command, **kwargs):
+            Path(command[3]).write_bytes(b'%PDF-original-image-and-text')
+            return subprocess.CompletedProcess(command,0)
+        with patch.dict('os.environ', {'VOICE_NOTEBOOK_PHOTOS_HELPER': sys.executable}), \
+             patch.object(self.app.course_notebooks,'download_image',new_callable=AsyncMock,return_value=b'\xff\xd8original'), \
+             patch('course_notebooks.subprocess.run',side_effect=make_pdf):
+            with self.assertRaises(TimeoutError):
+                asyncio.run(self.app.course_notebooks.finish_source(client,'course','failed',key))
+        self.app = App(Path(self.tmp.name))
+        with self.assertRaisesRegex(ValueError,'uncertain'):
+            asyncio.run(self.app.course_notebooks.copy_source(client,'EE211','week','course',origin))
+        existing.append(source('pdf',source_id+'_OCR.pdf'))
+        pending = asyncio.run(self.app.course_notebooks.copy_source(client,'EE211','week','course',origin))
+        client.sources.wait_until_ready.side_effect = None
+        asyncio.run(self.app.course_notebooks.finish_source(client,*pending))
+        self.assertEqual(client.sources.add_file.await_count,1)
+        client.sources.delete.assert_awaited_once_with('course','failed')
 
 
 if __name__ == '__main__':

@@ -84,7 +84,7 @@ Full Disk Access, Photos authorization and Google's account verification belong 
 
 Use **Retry** for a failed item, then start the upload again. The app reconciles saved source IDs before sending anything. If a response was lost and the remote result is uncertain, check NotebookLM instead of blindly resending the file.
 
-Course notebook copies also track their original and copied source IDs. An uncertain copy is reconciled before retrying. NotebookLM account limits can prevent adding more sources; the app reports the error without removing existing sources.
+Course notebook copies also track their original and copied source IDs. An uncertain copy is reconciled before retrying. If NotebookLM rejects an existing JPEG copy, the Mac app downloads that image from NotebookLM and prepares a local searchable PDF that includes the image. NotebookLM account limits can prevent adding more sources; the app reports the error without removing existing sources.
 
 A confirmed image-processing failure can use local OCR/PDF recovery. OCR may contain mistakes; the first PDF page retains the full image. Resolve duplicate notebooks or sources in NotebookLM before retrying. For expired sessions, use Sign in with Google. For unreadable media, check the selected folder and macOS access.
 
