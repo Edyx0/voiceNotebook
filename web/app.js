@@ -201,7 +201,7 @@ async function refresh() {
     $('settings-google-status').textContent=auth.message||$('auth-title').textContent;
     $('check-connection').disabled=state.job.busy||['signing_in','checking'].includes(auth.status);
     if(state.job.error)notice(state.job.error,true);else if(state.job.busy)notice(state.job.message);
-    else if(['Uploading ','Converting ','Scanning ','Updating course notebooks','Copying sources','Creating '].some(prefix=>$('notice').textContent.startsWith(prefix)))notice(state.job.message);
+    else if(['Uploading ','Converting ','Scanning ','Updating course notebooks','Copying sources','Creating ','Waiting for NotebookLM to process course sources'].some(prefix=>$('notice').textContent.startsWith(prefix)))notice(state.job.message);
     if(lastRendered!==JSON.stringify([state.recordings,state.job.busy,filter])){renderRecords();window.renderTimetable?.();}
     window.renderWorkflow?.(state);
     window.renderOnboarding?.();

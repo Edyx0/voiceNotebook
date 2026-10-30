@@ -1,4 +1,5 @@
 """Keep an all-weeks notebook in sync with each course's existing sources."""
+import asyncio
 import json
 import re
 
@@ -105,7 +106,7 @@ class CourseNotebooks:
         with self.app.db() as db:
             progress = db.execute("SELECT * FROM course_sources WHERE course=? AND origin_notebook_id=? AND origin_source_id=?", key).fetchone()
         if progress and progress["status"] == "done":
-            return
+            return None
         if progress and progress["target_source_id"]:
             target_id = progress["target_source_id"]
         else:
@@ -126,6 +127,9 @@ class CourseNotebooks:
                 target_id = copies[0].source.id
             with self.app.db() as db:
                 db.execute("UPDATE course_sources SET target_source_id=?,status='processing' WHERE course=? AND origin_notebook_id=? AND origin_source_id=?", (target_id, *key))
+        return target, target_id, key
+
+    async def finish_source(self, client, target, target_id, key):
         await client.sources.wait_until_ready(target, target_id, timeout=1200)
         with self.app.db() as db:
             db.execute("UPDATE course_sources SET status='done' WHERE course=? AND origin_notebook_id=? AND origin_source_id=?", key)
@@ -134,7 +138,7 @@ class CourseNotebooks:
         from notebooklm import NotebookLMClient
         from notebook_uploads import configure_file_uploads
 
-        errors = []
+        errors, pending = [], []
         async with NotebookLMClient.from_storage() as client:
             configure_file_uploads(client)
             notebooks = await client.notebooks.list()
@@ -153,13 +157,25 @@ class CourseNotebooks:
                                 errors.append(f"{original.title}: a source needs attention.")
                             elif getattr(source, "is_ready", True):
                                 try:
-                                    await self.copy_source(client, course, original.id, target, source)
+                                    result = await self.copy_source(client, course, original.id, target, source)
+                                    if result:
+                                        pending.append(result)
                                 except Exception as exc:
                                     errors.append(f"{course}: {exc}")
                             else:
                                 errors.append(f"{original.title}: a source is still processing.")
                 except Exception as exc:
                     errors.append(f"{course}: {exc}")
+            if pending:
+                self.app.job["message"] = "Waiting for NotebookLM to process course sources…"
+                semaphore = asyncio.Semaphore(4)
+                async def finish(item):
+                    async with semaphore:
+                        try:
+                            await self.finish_source(client, *item)
+                        except Exception as exc:
+                            errors.append(f"{item[2][0]}: {exc}")
+                await asyncio.gather(*(finish(item) for item in pending))
             self.app.library.cache_notebooks(notebooks)
         if ambiguous:
             errors.append("Choose the course for: " + ", ".join(item["title"] for item in ambiguous))

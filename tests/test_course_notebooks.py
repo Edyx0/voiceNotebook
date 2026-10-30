@@ -39,6 +39,7 @@ class CourseNotebookTests(unittest.TestCase):
         books = [original]
         original_sources = [source('audio', 'recording.mp3'), source('photo', 'board.pdf')]
         target_sources = []
+        events = []
 
         async def create(title):
             return SimpleNamespace(id='course', title=title)
@@ -47,13 +48,16 @@ class CourseNotebookTests(unittest.TestCase):
             return list(original_sources if notebook == 'week' else target_sources)
 
         async def copy(origin, ids, target):
+            events.append('copy-' + ids[0])
             item = next(s for s in original_sources if s.id == ids[0])
             copied = source('copy-' + item.id, item.title)
             target_sources.append(copied)
             return [SimpleNamespace(original_id=item.id, source=copied)]
 
+        async def wait(notebook, source_id, **kwargs):
+            events.append('wait-' + source_id)
         client = SimpleNamespace(notebooks=SimpleNamespace(list=AsyncMock(return_value=books), create=AsyncMock(side_effect=create)),
-            sources=SimpleNamespace(list=AsyncMock(side_effect=list_sources), copy=AsyncMock(side_effect=copy), wait_until_ready=AsyncMock()))
+            sources=SimpleNamespace(list=AsyncMock(side_effect=list_sources), copy=AsyncMock(side_effect=copy), wait_until_ready=AsyncMock(side_effect=wait)))
         session = AsyncMock()
         session.__aenter__.return_value = client
         with patch('notebooklm.NotebookLMClient.from_storage', return_value=session):
@@ -63,6 +67,7 @@ class CourseNotebookTests(unittest.TestCase):
             asyncio.run(self.app.course_notebooks.sync())
         self.assertEqual(client.notebooks.create.await_count, 1)
         self.assertEqual(client.sources.copy.await_count, 3)
+        self.assertEqual(events[:2], ['copy-audio', 'copy-photo'])
         self.assertEqual([s.title for s in target_sources], ['recording.mp3', 'board.pdf', 'new recording.mp3'])
         self.assertEqual(self.app.course_notebooks.records()[0]['notebook_id'], 'course')
 
@@ -76,7 +81,8 @@ class CourseNotebookTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'uncertain'):
             asyncio.run(self.app.course_notebooks.copy_source(client, 'EE211', 'week', 'course', item))
         existing.append(source('new-id', 'lecture.mp3'))
-        asyncio.run(self.app.course_notebooks.copy_source(client, 'EE211', 'week', 'course', item))
+        pending = asyncio.run(self.app.course_notebooks.copy_source(client, 'EE211', 'week', 'course', item))
+        asyncio.run(self.app.course_notebooks.finish_source(client, *pending))
         self.assertEqual(client.sources.copy.await_count, 1)
         client.sources.wait_until_ready.assert_awaited_once_with('course', 'new-id', timeout=1200)
 
