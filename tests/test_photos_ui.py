@@ -34,7 +34,11 @@ class PhotoBrowserTests(unittest.TestCase):
             page.screenshot(path=str(app.photos.folder/f"{pid}.jpg"),type="jpeg")
             app.photos.ingest([{"id":pid,"captured_at":"2026-10-12T10:00:00+03:00","label":"Text detected · possible board or presentation"}],
                               [{"start":1791788400,"end":1791795600,"notebook_id":"existing","title":"EE221 w3"}])
-            self.assertEqual(len(app.photos.records()),1)
+            other=hashlib.sha256(b"second synthetic board").hexdigest()
+            (app.photos.folder/f"{other}.jpg").write_bytes((app.photos.folder/f"{pid}.jpg").read_bytes())
+            app.photos.ingest([{"id":other,"captured_at":"2026-10-12T10:05:00+03:00","label":"Another board"}],
+                              [{"start":1791788400,"end":1791795600,"notebook_id":"existing","title":"EE221 w3"}])
+            self.assertEqual(len(app.photos.records()),2)
             rid=hashlib.sha256(b'class recording').hexdigest()
             with app.db() as db:
                 db.execute("INSERT INTO recordings(id,path,name,recorded_at,duration,size,status,route,notebook_id) VALUES(?,?,?,?,?,?,?,?,?)",(rid,'/test/audio.m4a','EE221 recording','2026-10-12T09:00:00+03:00',7200,1000,'uploaded',json.dumps({'course':'EE221','week':3,'title':'EE221 w3'}),'existing'))
@@ -55,6 +59,9 @@ class PhotoBrowserTests(unittest.TestCase):
                 page.get_by_role('button',name='Photos',exact=True).click()
                 expect(page.get_by_role("button",name="Upload approved photos ↗")).to_be_disabled()
                 expect(page.locator(".class-photo img")).to_be_visible()
+                expect(page.locator('.photo-navigation')).to_contain_text('Photo 1 of 2')
+                page.get_by_role('button',name='Next photo').click()
+                expect(page.locator('.photo-navigation')).to_contain_text('Photo 2 of 2')
                 page.wait_for_function("() => { const image = document.querySelector('.class-photo img'); return image?.complete && image.naturalWidth > 0; }")
                 page.get_by_role("button",name="Enlarge photo",exact=False).click()
                 expect(page.locator("#photo-preview")).to_be_visible()
@@ -62,6 +69,7 @@ class PhotoBrowserTests(unittest.TestCase):
                 page.get_by_role("button",name="Skip",exact=True).click()
                 expect(page.locator(".class-photo .badge")).to_have_text("Skipped")
                 page.reload();page.locator('.tab[data-view="recordings"]').click();page.get_by_role('button',name='Photos',exact=True).click()
+                page.get_by_role('button',name='Next photo').click()
                 expect(page.locator(".class-photo .badge")).to_have_text("Skipped")
                 page.get_by_role("button",name="Review again").click()
                 expect(page.locator(".class-photo select")).to_have_value("existing")

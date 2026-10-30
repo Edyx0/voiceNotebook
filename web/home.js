@@ -38,6 +38,7 @@ $('source-path-input').oninput=()=>$('source-path-input').setCustomValidity('');
 window.voiceNotebookFolderChosen=path=>{$('source-path-input').value=path;$('source-path-input').focus();notice('Folder selected. Choose Save Folder to use it.');};
 function openUploadFlow(ids=null,review=false){
   window.uploadRecordingIds=ids||state.recordings.filter(r=>r.status==='ready'&&r.route&&window.recordingInScope(r)).map(r=>r.id);
+  window.resetPhotoReview?.();
   uploadStage=review?'review':'options';$('include-photos').checked=false;
   if(!$('upload-dialog').open)$('upload-dialog').showModal();renderUpload();
 }
@@ -56,6 +57,7 @@ function renderUpload(){
   $('upload-summary').textContent=`${window.uploadRecordingIds.length} recording${window.uploadRecordingIds.length===1?'':'s'} → weekly notebooks`;
   if(['running','photo_upload'].includes(uploadStage)&&!busy)uploadStage=state.upload_batch?.stage==='photo_review'?'review':'complete';
   $('upload-title').textContent=uploadStage==='review'?'Review class photos':'Upload recordings';
+  $('upload-dialog').classList.toggle('review-mode',['review','photo_upload'].includes(uploadStage));
   $('upload-options').hidden=uploadStage!=='options';$('upload-progress').hidden=uploadStage==='options';
   $('upload-progress').textContent=busy?state.job.message:state.job.error||state.upload_batch?.photo_error||(uploadStage==='review'?'Audio uploaded. Choose which photos to include.':'Upload finished.');
   $('upload-photo-review').hidden=!['review','photo_upload'].includes(uploadStage);
