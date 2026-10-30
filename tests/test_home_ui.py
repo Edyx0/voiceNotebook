@@ -7,6 +7,39 @@ import test_ui
 
 
 class HomeBrowserTests(unittest.TestCase):
+    def test_ambiguous_notebook_can_be_assigned_and_synced(self):
+        fixture = test_ui.BrowserTests
+        fixture.setUpClass()
+        try:
+            page = fixture.browser.new_page(viewport={'width':1160,'height':900})
+            def state_response(route):
+                response = route.fetch()
+                data = response.json()
+                data['permissions'] = {'recordings':'granted','photos_enabled':False}
+                data['course_notebook_ambiguities'] = [{'notebook_id':'old','title':'ee w3','courses':['EE211','EE221']}]
+                route.fulfill(response=response,json=data)
+            requests = []
+            def assign(route):
+                requests.append(route.request.post_data_json)
+                route.fulfill(json={'ok':True})
+            syncs = []
+            def sync(route):
+                syncs.append(True)
+                route.fulfill(json={'ok':True})
+            page.route('**/api/state',state_response)
+            page.route('**/api/course-notebooks/assign',assign)
+            page.route('**/api/course-notebooks/sync',sync)
+            page.goto(fixture.url)
+            page.locator('.tab[data-view="recordings"]').click()
+            page.get_by_label('Course for ee w3').select_option('EE211')
+            with page.expect_response('**/api/course-notebooks/sync'):
+                page.get_by_role('button',name='Assign',exact=True).click()
+            self.assertEqual(len(syncs),1)
+            self.assertEqual(requests,[{'notebook_id':'old','course':'EE211'}])
+            page.close()
+        finally:
+            fixture.tearDownClass()
+
     def test_current_week_coverage_optional_permissions_and_audio_only_upload(self):
         from playwright.sync_api import sync_playwright,expect
         BrowserTests=test_ui.BrowserTests

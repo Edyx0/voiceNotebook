@@ -28,6 +28,7 @@ from access import Access
 from overview import weekly_overview
 from recording_library import RecordingLibrary, audio_range
 from notebook_uploads import configure_file_uploads
+from course_notebooks import CourseNotebooks
 
 ROOT = Path(__file__).resolve().parent
 if getattr(sys, "frozen", False):
@@ -214,6 +215,7 @@ class App:
                 db.execute("ALTER TABLE recordings ADD COLUMN mtime_ns INTEGER")
         self.config = self.load_config()
         self.library = RecordingLibrary(self, run_media)
+        self.course_notebooks = CourseNotebooks(self)
         self.photos = ClassPhotos(self)
         self.access = Access()
         self.upload_batch = {"recording_ids": [], "photo_ids": [], "stage": "idle", "photo_error": None}
@@ -270,7 +272,7 @@ class App:
         with self.guard:
             if self.job["busy"]:
                 raise ValueError("An operation is already running.")
-            if kind == "sync" and self.auth["status"] in ("signing_in", "checking"):
+            if kind in ("sync", "course-sync", "photos-sync") and self.auth["status"] in ("signing_in", "checking"):
                 raise ValueError("Wait for the NotebookLM connection operation to finish.")
             if type(include_photos) is not bool:
                 raise ValueError("Invalid photo option.")
@@ -281,11 +283,15 @@ class App:
             if recording_ids is not None and (not isinstance(recording_ids,list) or len(recording_ids)>500 or not all(isinstance(r,str) for r in recording_ids)):
                 raise ValueError("Invalid recording selection.")
             selected_ids = set(recording_ids) if recording_ids is not None else None
-            message = {"photos-scan": "Finding class photos…", "photos-sync": "Uploading approved class photos…"}.get(kind, "Scanning recordings…")
+            message = {"photos-scan": "Finding class photos…", "photos-sync": "Uploading approved class photos…", "course-sync": "Updating course notebooks…"}.get(kind, "Scanning recordings…")
             self.job = {"busy": True, "message": message, "error": None}
             if kind=='sync':self.upload_batch={"recording_ids":[],"photo_ids":[],"stage":"scanning","photo_error":None}
         def run():
             try:
+                if kind == "course-sync":
+                    asyncio.run(self.course_notebooks.sync())
+                    self.job["message"] = "Course notebooks updated."
+                    return
                 if kind in ("photos-scan", "photos-sync"):
                     if kind == "photos-scan":
                         self.photos.scan(recording_ids)
@@ -293,6 +299,10 @@ class App:
                         asyncio.run(self.photos.sync(photo_ids))
                         self.upload_batch['stage']='complete'
                         self.job["message"] = "Photo uploads finished. Check the photo queue for results."
+                        try:
+                            asyncio.run(self.course_notebooks.sync())
+                        except Exception as exc:
+                            self.job["error"] = "; ".join(filter(None, [self.job["error"], str(exc)]))
                     return
                 self.scan()
                 if kind == "sync":
@@ -300,6 +310,11 @@ class App:
                     self.upload_batch={"recording_ids":recording_ids,"photo_ids":[],"stage":"audio","photo_error":None}
                     asyncio.run(self.sync(recording_ids))
                     self.upload_batch['stage']='complete'
+                    if recording_ids:
+                        try:
+                            asyncio.run(self.course_notebooks.sync())
+                        except Exception as exc:
+                            self.job["error"] = "; ".join(filter(None, [self.job["error"], str(exc)]))
                     if include_photos:
                         try:
                             self.photos.scan(recording_ids)
@@ -581,6 +596,8 @@ class App:
         return {"config": self.config, "recordings": records, "job": dict(self.job),
                 "overview":weekly_overview(records,self.config),"permissions":permissions,"upload_batch":dict(self.upload_batch),
                 "photos": self.photos.records(), "photos_available": permissions['photos_enabled'],
+                "course_notebooks": self.course_notebooks.records(),
+                "course_notebook_ambiguities": self.course_notebooks.ambiguities(),
                 "auth": dict(self.auth),
                 "dependencies": {"ffmpeg": bool(shutil.which("ffmpeg")),
                                  "notebooklm": importlib.util.find_spec("notebooklm") is not None},
@@ -722,6 +739,13 @@ def serve(app, port, open_browser=False, ready_file=None):
                     app.start("photos-scan",recording_ids=value.get('recording_ids'))
                 elif self.path == "/api/photos/sync":
                     app.start("photos-sync",photo_ids=value.get('ids'))
+                elif self.path == "/api/course-notebooks/sync":
+                    app.start("course-sync")
+                elif self.path == "/api/course-notebooks/assign":
+                    with app.guard:
+                        if app.job["busy"]:
+                            raise ValueError("Wait for the current operation before assigning a course.")
+                        app.course_notebooks.assign(value["notebook_id"], value["course"])
                 elif self.path == "/api/photos/review":
                     app.photos.review(value["id"], value["action"], value.get("notebook_id"))
                 elif self.path == "/api/review":

@@ -232,9 +232,11 @@ class PipelineTests(unittest.TestCase):
         with patch.object(self.app, 'scan'), \
              patch.object(self.app, 'records', return_value=[row, other]), \
              patch.object(self.app, 'sync', new_callable=AsyncMock) as sync, \
+             patch.object(self.app.course_notebooks, 'sync', new_callable=AsyncMock) as course_sync, \
              patch('voice_notebook.threading.Thread', side_effect=lambda target, daemon: SimpleNamespace(start=target)):
             self.app.start('sync', recording_ids=[row['id']])
         sync.assert_awaited_once_with([row['id']])
+        course_sync.assert_awaited_once()
         self.assertEqual(self.app.upload_batch['recording_ids'], [row['id']])
 
     def test_two_distinct_recordings_reuse_same_notebook(self):

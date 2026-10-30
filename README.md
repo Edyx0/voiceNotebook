@@ -20,6 +20,7 @@ A local lecture library for your Mac. Match recordings to a timetable, then send
 - Matches recordings to a course and semester week. Uncertain dates and overlapping classes go to manual review.
 - Converts M4A and QTA recordings to MP3 and splits large audio before upload.
 - Creates or reuses one NotebookLM notebook per course and week. Saved progress avoids duplicate uploads after an interruption.
+- Collects existing weekly notebook sources in a separate `COURSE · All weeks` notebook. New uploads and approved photos are copied there too; use **Update notebooks** to include sources added directly in NotebookLM.
 - Optionally finds class photos inside uploaded lecture windows. Every photo needs review and approval before upload.
 - Recovers rejected lecture images with a local searchable PDF that preserves the complete image.
 - Offers local playback, local display names, native Mac menus, keyboard controls and a resizable workspace.
@@ -65,7 +66,7 @@ An Apple signing identity is not included. This source build is not a notarized 
 1. **Connect recordings.** Open Settings and enable Full Disk Access for voiceNotebook if you use Apple Voice Memos. Quit and reopen after granting it. Alternatively, choose an exported-audio folder; that route does not need Full Disk Access.
 2. **Connect NotebookLM.** Choose “Sign in with Google”. A separate window opens in the default browser. Select your account and complete Google's verification. In Safari and supported Chromium browsers, voiceNotebook detects the return to NotebookLM, imports the selected account's session and closes its own window. Other browser windows stay open. “Finish sign-in” is available if automatic completion is unavailable. macOS may request browser Automation or Keychain access; Safari's protected session can require Full Disk Access. These system approvals cannot be skipped.
 3. **Add your timetable.** Import a photo or enter classes manually. Set the semester's first week and timezone, review every class, then save.
-4. **Scan and upload.** Check assignments in Recordings, then choose Convert & upload. Photos remain optional; enable them only if you want them in a particular upload.
+4. **Scan and upload.** Check assignments in Recordings, then choose Convert & upload. Photos remain optional; enable them only if you want them in a particular upload. Choose **Update notebooks** to gather existing weekly sources into course notebooks. When a notebook name could belong to more than one course, choose its course in Recordings.
 
 Quick start is available when you need it. The app does not block first launch with a tour or request Photos access automatically. Canceling a new sign-in keeps an existing working connection.
 
@@ -75,13 +76,15 @@ There is no hosted voiceNotebook backend and no project analytics. The local ser
 
 Configuration, the local SQLite queue, converted audio, previews and reviewed photo copies live under `~/Library/Application Support/voiceNotebook`. `VOICE_NOTEBOOK_HOME` can select a separate app-data folder. The NotebookLM client stores its Google session in its local profile; `NOTEBOOKLM_HOME` can select separate session storage. Treat that profile like a password.
 
-Sign-in verifies a staged session before replacing an existing one. It never asks for a Google password in the app UI. Google OAuth tokens do not provide access to personal NotebookLM notebooks; this integration uses a local browser session instead. Only queued recordings and approved photos are sent to Google's NotebookLM service. Enabling automatic sync explicitly opts into scheduled audio uploads; photo approval remains manual. Source files stay intact.
+Sign-in verifies a staged session before replacing an existing one. It never asks for a Google password in the app UI. Google OAuth tokens do not provide access to personal NotebookLM notebooks; this integration uses a local browser session instead. Only queued recordings and approved photos are sent to Google's NotebookLM service. Existing sources in matched course notebooks are copied within NotebookLM into the corresponding all-weeks notebook. Enabling automatic sync explicitly opts into scheduled audio uploads; photo approval remains manual. Source files stay intact.
 
 Full Disk Access, Photos authorization and Google's account verification belong to macOS and Google. The app explains them and opens the relevant controls; it cannot silently grant or bypass them.
 
 ## When an upload stops
 
 Use **Retry** for a failed item, then start the upload again. The app reconciles saved source IDs before sending anything. If a response was lost and the remote result is uncertain, check NotebookLM instead of blindly resending the file.
+
+Course notebook copies also track their original and copied source IDs. An uncertain copy is reconciled before retrying. NotebookLM account limits can prevent adding more sources; the app reports the error without removing existing sources.
 
 A confirmed image-processing failure can use local OCR/PDF recovery. OCR may contain mistakes; the first PDF page retains the full image. Resolve duplicate notebooks or sources in NotebookLM before retrying. For expired sessions, use Sign in with Google. For unreadable media, check the selected folder and macOS access.
 

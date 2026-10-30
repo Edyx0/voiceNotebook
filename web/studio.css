@@ -26,6 +26,9 @@ label,.hint,label small{font-size:13px}summary{font-size:13px}
 .filters{gap:24px;padding:8px 0 20px}.filter{font-size:13px}
 .column-head{display:none}
 .recording-list{border:0;min-height:280px}.recording{padding:22px 0;gap:24px}
+.course-notebooks{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:18px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.course-notebooks h2{font-size:16px;margin:0 0 4px}.course-notebooks p{margin:0;color:var(--muted);font-size:13px}.course-notebooks #course-notebook-links{display:flex;flex-wrap:wrap;gap:12px 20px;margin-top:10px}.course-notebooks #course-notebook-links:empty{display:none}
+.course-choice{display:flex;align-items:end;gap:8px;margin-top:12px}.course-choice label{gap:4px}.course-choice select{min-width:150px}
 .recording-name{font-size:15px;font-weight:500}.recording small{font-size:12px;line-height:1.6}
 .recording .row-actions{gap:8px;flex-wrap:wrap}.recording button{font-size:12px;min-height:32px;border-radius:5px}
 .notebook-link{font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -80,4 +83,5 @@ footer{border-color:var(--line);font:12px/1.6 -apple-system,BlinkMacSystemFont,"
 @media(max-width:850px){header{height:auto;min-height:84px;grid-template-columns:1fr auto;padding-top:14px;padding-bottom:10px}header nav{grid-column:1/-1;grid-row:2;justify-self:start}.header-actions{grid-column:2;grid-row:1}.calendar-scroll{height:min(594px,calc(100vh - 320px))}}
 @media(max-width:800px){main{padding:0 24px}.column-head{display:none}.recording{padding:20px 0}.recording-list{border-top:1px solid var(--line)}}
 @media(max-width:650px){#upload-photo-review .class-photo{grid-template-columns:1fr;gap:20px}#upload-photo-review .photo-open img{height:260px}}
+@media(max-width:650px){.course-notebooks{align-items:flex-start;flex-direction:column;gap:12px}}
 @media(max-width:570px){header{padding:14px 18px 10px;gap:10px}.brand{font-size:22px;gap:8px}.brand svg{width:26px;height:26px}.header-actions{gap:10px}.connection-shortcut{font-size:0}.settings-shortcut{font-size:12px}.settings-shortcut:first-child:not(#open-settings){font-size:11px}main{padding:0 18px}nav{gap:4px}.tab{font-size:12px;padding:9px 10px}.toolbar{padding:26px 0 22px}h1,.calendar-title h1{font-size:27px}.actions{gap:8px}.home-actions{flex-wrap:wrap}.home-actions button{flex:initial}.home-progress{flex-wrap:wrap}.primary,.secondary{font-size:12px}.filters{gap:18px}.filter{font-size:12px}.home-progress{font-size:12px;gap:12px}.calendar-day-label{padding:12px 7px}.calendar-event{padding:8px}.calendar-event strong{font-size:12px}.recording small{font-size:11px}.upload-dialog{padding:20px}.access-gate{padding:44px 0}.access-gate h1{font-size:27px}footer{font-size:11px}}

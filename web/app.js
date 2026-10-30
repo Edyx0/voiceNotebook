@@ -125,6 +125,18 @@ function renderRecordingQueue() {
   const ready=records.filter(r=>r.status==='ready').length,review=records.filter(r=>r.status==='review').length;
   $('queue-description').textContent=records.length?`${ready} ready · ${review} need review`:'';
   $('scan').disabled=state.job.busy;$('sync').disabled=state.job.busy||!records.some(r=>r.status==='ready'&&r.route);
+  $('course-notebooks-sync').disabled=state.job.busy;
+}
+$('course-notebooks-sync').onclick=()=>action('/api/course-notebooks/sync',{},'Updating course notebooks…');
+let courseNotebookSignature='';
+function renderCourseNotebooks() {
+  const notebooks=state.course_notebooks||[],ambiguities=state.course_notebook_ambiguities||[],signature=JSON.stringify([notebooks,ambiguities,state.job.busy]);
+  if(signature===courseNotebookSignature)return;
+  courseNotebookSignature=signature;
+  const root=$('course-notebook-links');root.replaceChildren();
+  for(const notebook of notebooks){const link=el('a',notebook.course+' ↗','notebook-link');link.href='https://notebooklm.google.com/notebook/'+encodeURIComponent(notebook.notebook_id);link.target='_blank';link.rel='noopener noreferrer';root.append(link);}
+  const choices=$('course-notebook-choices');choices.replaceChildren();
+  for(const item of ambiguities){const row=el('div',null,'course-choice'),label=el('label',item.title),select=el('select'),placeholder=el('option','Choose course'),save=el('button','Assign','secondary');placeholder.value='';select.append(placeholder);for(const course of item.courses){const option=el('option',course);option.value=course;select.append(option);}select.setAttribute('aria-label',`Course for ${item.title}`);label.append(select);save.type='button';save.disabled=state.job.busy;save.onclick=async()=>{if(!select.value){select.focus();return;}if(await action('/api/course-notebooks/assign',{notebook_id:item.notebook_id,course:select.value},''))await action('/api/course-notebooks/sync',{},'Updating course notebooks…');};row.append(label,save);choices.append(row);}
 }
 function renderRecords() {
   renderRecordingQueue();
@@ -172,6 +184,7 @@ async function refresh() {
     $('folder').value=state.config.recordings_folder;
     if(!setupLoaded){const c=state.config;for(const [id,key] of [['week-one','week_one'],['semester-weeks','semester_weeks'],['timezone','timezone'],['tolerance','tolerance_minutes'],['folder','recordings_folder'],['prefix','notebook_prefix']])$(id).value=c[key];$('auto-sync').checked=c.auto_sync;c.lectures.forEach(slot);setupLoaded=true;}
     $('count').textContent=state.recordings.length;
+    renderCourseNotebooks();
     renderRecordingQueue();
     $('activity').textContent=state.job.busy?state.job.message:(state.config.auto_sync?'AUTO SYNC / EVERY MINUTE':'MANUAL SYNC');
     $('source-label').textContent=state.config.recordings_folder.includes('com.apple.VoiceMemos')?'Voice Memos':'Audio folder';
@@ -188,7 +201,7 @@ async function refresh() {
     $('settings-google-status').textContent=auth.message||$('auth-title').textContent;
     $('check-connection').disabled=state.job.busy||['signing_in','checking'].includes(auth.status);
     if(state.job.error)notice(state.job.error,true);else if(state.job.busy)notice(state.job.message);
-    else if($('notice').textContent.startsWith('Uploading ')||$('notice').textContent.startsWith('Converting ')||$('notice').textContent.startsWith('Scanning '))notice(state.job.message);
+    else if(['Uploading ','Converting ','Scanning ','Updating course notebooks','Copying sources','Creating '].some(prefix=>$('notice').textContent.startsWith(prefix)))notice(state.job.message);
     if(lastRendered!==JSON.stringify([state.recordings,state.job.busy,filter])){renderRecords();window.renderTimetable?.();}
     window.renderWorkflow?.(state);
     window.renderOnboarding?.();
