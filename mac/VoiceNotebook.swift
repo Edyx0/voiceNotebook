@@ -13,6 +13,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     var attempts = 0
     var logHandle: FileHandle?
     private let googleSignIn = GoogleSignIn()
+    private let galleryPicker = GalleryPicker()
     private var loadingView: NSView?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -147,6 +148,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         case "fullDiskAccess": fullDiskAccess()
         case "showData": showData()
         case "photosAccess": requestPhotosAccess { [weak self] in self?.refreshAccess() }
+        case "chooseGallery": galleryPicker.show(in: message.webView?.window ?? window, target: message.webView ?? webView)
         case "refreshAccess": refreshAccess()
         case "showApplication": NSWorkspace.shared.activateFileViewerSelecting([Bundle.main.bundleURL])
         case "googleSignInConnected":

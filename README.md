@@ -22,7 +22,7 @@ A local lecture library for your Mac. Match recordings to a timetable, then send
 - Creates or reuses one NotebookLM notebook per course and week. Saved progress avoids duplicate uploads after an interruption.
 - Collects existing weekly notebook sources in a separate `COURSE · All weeks` notebook. New uploads and approved photos are copied there too; use **Update notebooks** to include sources added directly in NotebookLM.
 - Optionally finds class photos inside uploaded lecture windows. Every photo needs review and approval before upload.
-- Use the photo icon in the toolbar to add photos from the Mac file picker or its Photos library sidebar. Choose any connected notebook and review the selection before uploading; each photo is converted to a PDF with local text recognition when available. The list puts recent views and uploads first; NotebookLM does not expose a reliable last-edited timestamp.
+- Adds selected photos from Files or the system Photos picker to any connected notebook, with an explicit review before upload.
 - Recovers rejected lecture images with a local searchable PDF that preserves the complete image.
 - Offers local playback, local display names, native Mac menus, keyboard controls and a resizable workspace.
 
@@ -70,6 +70,14 @@ An Apple signing identity is not included. This source build is not a notarized 
 4. **Scan and upload.** Check assignments in Recordings, then choose Convert & upload. Photos remain optional; enable them only if you want them in a particular upload. Choose **Update notebooks** to gather existing weekly sources into course notebooks. When a notebook name could belong to more than one course, choose its course in Recordings.
 
 Quick start is available when you need it. The app does not block first launch with a tour or request Photos access automatically. Canceling a new sign-in keeps an existing working connection.
+
+### Add photos to a notebook
+
+1. Click the photo icon in the toolbar and choose a connected notebook.
+2. Click **Choose photos…**, then **Files…** or **Photos library…**. The native Photos picker shares only the images you select, without requiring access to your entire library.
+3. Review the previews, then click **Add to notebook**. Each image becomes a PDF on your Mac, with local text recognition when available.
+
+The Photos picker accepts up to 20 images per selection, with a 20 MB limit per converted image and 50 MB total. The notebook list puts recent views and uploads first; NotebookLM does not expose a reliable last-edited timestamp. The browser preview uses its file picker; the system Photos picker requires the Mac app.
 
 ## Privacy and storage
 

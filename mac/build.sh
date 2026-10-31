@@ -23,8 +23,8 @@ cp mac/Info.plist "$APP/Contents/Info.plist"
 rm -rf "$APP/Contents/Resources/backend"
 cp -R build/backend-dist/voice-notebook-server "$APP/Contents/Resources/backend"
 rm -rf "$APP/Contents/Resources/browser"
-xcrun swiftc mac/VoiceNotebook.swift mac/PhotosScanner.swift mac/PhotoDocument.swift mac/GoogleSignIn.swift -o "$APP/Contents/MacOS/voiceNotebook" \
-  -framework AppKit -framework WebKit -framework AuthenticationServices -framework Photos -framework Vision -framework CryptoKit -target "$ARCH-apple-macosx13.0"
+xcrun swiftc mac/VoiceNotebook.swift mac/PhotosScanner.swift mac/PhotoDocument.swift mac/GalleryPicker.swift mac/GoogleSignIn.swift -o "$APP/Contents/MacOS/voiceNotebook" \
+  -framework AppKit -framework WebKit -framework AuthenticationServices -framework Photos -framework PhotosUI -framework SwiftUI -framework Vision -framework CryptoKit -target "$ARCH-apple-macosx13.0"
 xcrun swift mac/Icon.swift "$APP/Contents/Resources/AppIcon.icns"
 codesign --force --deep --sign "$SIGNING_IDENTITY" --identifier com.edizy.voiceNotebook "$APP"
 codesign --verify --deep --strict "$APP"

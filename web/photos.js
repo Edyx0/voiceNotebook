@@ -6,6 +6,20 @@
     selectedURLs.forEach(URL.revokeObjectURL); selectedURLs = []; selectedFiles = [];
     if (resetInput) selectedInput.value = ''; $('selected-photos-preview').replaceChildren();
   }
+  function showSources(show) {
+    $('selected-photos-sources').hidden = !show;
+    $('selected-photos-choose').setAttribute('aria-expanded', String(show));
+  }
+  function setSelected(files) {
+    clearSelected(false); selectedFiles = files;
+    for (const file of files) {
+      const url = URL.createObjectURL(file); selectedURLs.push(url);
+      const image = el('img'); image.src = url; image.alt = file.name || 'Selected photo';
+      $('selected-photos-preview').append(image);
+    }
+    selectedMessage.textContent = files.length ? `${files.length} photo${files.length === 1 ? '' : 's'} selected. Review them before adding.` : '';
+    selectedControls();
+  }
   function selectedControls() {
     $('selected-photos-upload').disabled = selectedBusy || !!state?.job?.busy || !selectedFiles.length || !selectedNotebook.value;
     $('selected-photos-choose').disabled = selectedBusy || !!state?.job?.busy;
@@ -14,18 +28,26 @@
   $('add-gallery-photos').onclick = () => { selectedMessage.textContent = ''; window.renderSelectedPhotos(state); selectedDialog.showModal(); };
   $('selected-photos-close').onclick = () => selectedDialog.close();
   selectedDialog.addEventListener('cancel', event => { if (selectedBusy) event.preventDefault(); });
-  selectedDialog.addEventListener('close', () => clearSelected());
-  $('selected-photos-choose').onclick = () => selectedInput.click();
+  selectedDialog.addEventListener('close', () => { clearSelected(); showSources(false); });
+  $('selected-photos-choose').onclick = () => showSources($('selected-photos-sources').hidden);
+  $('selected-photos-files').onclick = () => { showSources(false); selectedInput.click(); };
+  $('selected-photos-library').onclick = () => {
+    showSources(false);
+    if (native) native.postMessage({action:'chooseGallery'});
+    else { selectedMessage.textContent = 'In the file picker, choose Photos in the sidebar.'; selectedInput.click(); }
+  };
+  window.voiceNotebookGallerySelected = result => {
+    if (!selectedDialog.open) return;
+    if (result.error) { selectedMessage.textContent = result.error; return; }
+    const files = (result.photos || []).map(photo => {
+      const bytes = Uint8Array.from(atob(photo.data), c => c.charCodeAt(0));
+      return new File([bytes], photo.name, {type:'image/jpeg'});
+    });
+    if (files.length) setSelected(files);
+  };
   selectedNotebook.onchange = selectedControls;
   selectedInput.onchange = () => {
-    const files = Array.from(selectedInput.files); clearSelected(false); selectedFiles = files;
-    for (const file of files) {
-      const url = URL.createObjectURL(file); selectedURLs.push(url);
-      const image = el('img'); image.src = url; image.alt = file.name || 'Selected photo';
-      $('selected-photos-preview').append(image);
-    }
-    selectedMessage.textContent = files.length ? `${files.length} photo${files.length === 1 ? '' : 's'} selected. Review them before adding.` : '';
-    selectedControls();
+    setSelected(Array.from(selectedInput.files));
   };
   async function jpegData(file) {
     const url = URL.createObjectURL(file);

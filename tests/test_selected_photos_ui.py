@@ -1,4 +1,5 @@
 """Exercise photo selection without accessing a personal library or Google."""
+import base64
 import importlib.util
 import os
 from pathlib import Path
@@ -42,6 +43,7 @@ class SelectedPhotoBrowserTests(unittest.TestCase):
                     except OSError:
                         time.sleep(.05)
                 page = browser.new_page()
+                page.add_init_script("window.webkit = {messageHandlers:{native:{postMessage: value => window.lastNativeMessage = value}}}")
                 page.set_content('<body style="background:#536;color:white"><h1>Synthetic board</h1></body>')
                 image = Path(temp) / 'board.jpg'
                 page.screenshot(path=str(image), type='jpeg')
@@ -60,6 +62,12 @@ class SelectedPhotoBrowserTests(unittest.TestCase):
                 page.get_by_role('button', name='Add photos to a notebook').click()
                 expect(page.locator('#selected-photos-notebook option')).to_have_text(['Untitled notebook', 'Selected notebook'])
                 page.locator('#selected-photos-notebook').select_option('target')
+                page.get_by_role('button', name='Choose photos…').click()
+                expect(page.get_by_role('button', name='Files…')).to_be_visible()
+                page.get_by_role('button', name='Photos library…').click()
+                self.assertEqual(page.evaluate('window.lastNativeMessage.action'), 'chooseGallery')
+                page.evaluate('item => window.voiceNotebookGallerySelected(item)', {'photos':[{'name':'Test.jpg','data':base64.b64encode(image.read_bytes()).decode()}]})
+                expect(page.locator('#selected-photos-preview img')).to_have_count(1)
                 page.locator('#selected-photos-input').set_input_files(str(image))
                 expect(page.locator('#selected-photos-preview img')).to_have_count(1)
                 expect(page.get_by_role('button', name='Add to notebook')).to_be_enabled()
