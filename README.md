@@ -12,6 +12,22 @@ A local lecture library for your Mac. Match recordings to a timetable, then send
 
 ![Weekly overview with synthetic lecture data](docs/screenshots/this-week.png)
 
+## Install with Homebrew
+
+With [Homebrew](https://brew.sh) installed, run:
+
+```sh
+brew install --cask edyx0/tap/voicenotebook
+```
+
+Open **voiceNotebook** from Applications. You do not need to clone this repository, install Python, or build the app. Homebrew installs FFmpeg for audio conversion.
+
+The first packaged release supports **Apple silicon and macOS Tahoe 26 or newer**. For Intel Macs or older macOS versions, see the source-build requirements below.
+
+To update, run `brew update && brew upgrade --cask edyx0/tap/voicenotebook`. To uninstall, run `brew uninstall --cask voicenotebook`; your recordings and app data remain intact.
+
+The app still needs the macOS permissions and Google sign-in described under **First use**.
+
 ## What it does
 
 - Reads Apple Voice Memos, or audio exported to a folder you choose. Originals are never renamed, moved or deleted.
@@ -26,7 +42,7 @@ A local lecture library for your Mac. Match recordings to a timetable, then send
 - Recovers rejected lecture images with a local searchable PDF that preserves the complete image.
 - Offers local playback, local display names, native Mac menus, keyboard controls and a resizable workspace.
 
-## Requirements
+## Source-build requirements
 
 A Mac running macOS 13 or newer, Python 3.10 or newer, Xcode Command Line Tools, and FFmpeg. The build targets the architecture of your Mac: Apple silicon or Intel.
 
@@ -50,7 +66,7 @@ ditto dist/voiceNotebook.app ~/Applications/voiceNotebook.app
 open ~/Applications/voiceNotebook.app
 ```
 
-The app bundles its Python service and audio tools. It does not bundle, download or compile a browser. Google sign-in uses the Mac's default browser. It does not need a terminal window when installed. For a browser preview with exported audio, run `./start.command`. Native Photos access and local timetable photo recognition need the built Mac app.
+The default source build bundles its Python service and audio tools. The Homebrew release bundles Python and uses Homebrew's FFmpeg instead. Neither build bundles, downloads or compiles a browser. Google sign-in uses the Mac's default browser. It does not need a terminal window when installed. For a browser preview with exported audio, run `./start.command`. Native Photos access and local timetable photo recognition need the built Mac app.
 
 ### Signing
 
@@ -61,6 +77,8 @@ VOICE_NOTEBOOK_SIGNING_IDENTITY="Apple Development: Your Name (TEAMID)" bash mac
 ```
 
 An Apple signing identity is not included. This source build is not a notarized release. Replacing a local ad-hoc build can require macOS permissions to be granted again.
+
+Release maintainers can use the [signed packaging instructions](docs/releasing.md).
 
 ## First use
 

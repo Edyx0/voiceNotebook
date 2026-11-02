@@ -1,7 +1,9 @@
-"""Offline smoke test for the built backend, independent of Python/Homebrew on PATH."""
+"""Offline smoke test for bundled and Homebrew-managed builds, without Python on PATH."""
 import json
 import base64
 import os
+import plistlib
+import shutil
 from pathlib import Path
 import subprocess
 import tempfile
@@ -15,10 +17,22 @@ EXECUTABLE = ROOT / 'dist/voiceNotebook.app/Contents/Resources/backend/voice-not
 
 @unittest.skipUnless(EXECUTABLE.exists(), 'Build the Mac app first')
 class PackagedTests(unittest.TestCase):
+    def test_release_python_framework_signature(self):
+        if os.environ.get('VOICE_NOTEBOOK_EXTERNAL_FFMPEG') != '1':
+            self.skipTest('Developer ID release check')
+        app = ROOT / 'dist/voiceNotebook.app'
+        with (app / 'Contents/Info.plist').open('rb') as stream:
+            self.assertRegex(plistlib.load(stream)['CFBundleShortVersionString'], r'^\d+\.\d+\.\d+$')
+        framework = EXECUTABLE.parent / '_internal/Python.framework'
+        result = subprocess.run(['codesign', '--verify', '--deep', '--strict', str(framework)], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_bundled_service_assets_audio_tools_and_sdk(self):
         with tempfile.TemporaryDirectory() as tmp:
             ready = Path(tmp) / 'ready.json'
-            env = {**os.environ, 'PATH':'/usr/bin:/bin', 'VOICE_NOTEBOOK_HOME':tmp+'/data', 'NOTEBOOKLM_HOME':tmp+'/notebooklm'}
+            external_audio = os.environ.get('VOICE_NOTEBOOK_EXTERNAL_FFMPEG') == '1'
+            audio_path = '/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin' if external_audio else '/usr/bin:/bin'
+            env = {**os.environ, 'PATH':audio_path, 'VOICE_NOTEBOOK_HOME':tmp+'/data', 'NOTEBOOKLM_HOME':tmp+'/notebooklm'}
             process = subprocess.Popen([str(EXECUTABLE),'--port','0','--ready-file',str(ready)], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             try:
                 for _ in range(200):
@@ -54,6 +68,10 @@ class PackagedTests(unittest.TestCase):
                     time.sleep(.05)
                 self.assertEqual(state['auth']['status'],'error')  # Isolated home has no Google session.
                 ffmpeg=EXECUTABLE.parent/'_internal/bin/ffmpeg'
+                if external_audio:
+                    self.assertFalse(ffmpeg.exists())
+                    ffmpeg = shutil.which('ffmpeg', path=audio_path)
+                    self.assertIsNotNone(ffmpeg)
                 result=subprocess.run([str(ffmpeg),'-v','error','-f','lavfi','-i','sine=duration=1','-f','mp3',tmp+'/audio.mp3'],env=env,capture_output=True)
                 self.assertEqual(result.returncode,0,result.stderr.decode())
                 self.assertGreater((Path(tmp)/'audio.mp3').stat().st_size,0)
