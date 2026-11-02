@@ -1,91 +1,123 @@
-# Reddit launch drafts
+# Reddit posts
 
-These are English drafts for the creator to post. They disclose authorship and the unofficial integration. They have not been submitted to Reddit. The first binary release targets Apple silicon with macOS Tahoe 26 or newer; do not describe it as supporting every Mac.
+Revised on November 2, 2026. These posts are written for the developer's account. Publication status and links are recorded below after submission.
 
-Check each community's current rules, required flair and designated promotion thread before posting. Reddit's rules endpoints returned HTTP 403 during preparation, so these drafts do not imply moderator approval. Use a screenshot with synthetic data, such as `docs/screenshots/this-week.png`, and keep personal lecture media and account details out of screenshots.
+The drafts use concrete examples rather than a feature catalogue. They avoid invented stories, claims about time saved, and generic requests for engagement. Each discloses the developer's relationship to the app and the unofficial Google integration.
 
 ## r/notebooklm
 
-**Title:** I built a Mac app that sorts lecture recordings into NotebookLM notebooks by course and week
+**Title:** I made a Mac app to sort lecture recordings into NotebookLM notebooks
 
 **Body:**
 
-I made voiceNotebook to handle the work between recording a lecture and getting it into the right NotebookLM notebook. I'm the developer; it's free and open source.
+**Upload your lecture recordings to NotebookLM, sorted by class and week.**
 
-You give it your timetable and connect Apple Voice Memos or a folder of exported audio. It matches recordings to classes, converts them to MP3, and creates or reuses a notebook for each course and week. Two lectures for the same course in week 5 go into the same notebook.
+voiceNotebook is a free Mac app I built for students who record lectures.
 
-You can also gather those weekly sources into an all-weeks course notebook. Timetable photos are recognized locally on the Mac, with an editable review before saving. Lecture photos need your approval before upload.
+1. Choose Apple Voice Memos or a folder of recordings.
+2. Add your class timetable, by hand or from a photo.
+3. Check the matches and choose **Convert & upload**.
 
-Install with Homebrew:
+The app converts the audio and uploads it to the notebook for that class and week. Two lectures for the same course in week 5 go together. Uncertain matches need a manual check. Your original recordings stay untouched.
+
+**Apple silicon, macOS 26+. Free and open source (MIT).**
 
 ```sh
 brew install --cask edyx0/tap/voicenotebook
 ```
 
-The first packaged release is for Apple silicon on macOS Tahoe 26 or newer. Homebrew installs the audio tools; you don't need to clone the repo or set up Python.
+Source, screenshots and setup: https://github.com/Edyx0/voiceNotebook
 
-This is an independent project using the unofficial notebooklm-py client, so Google sign-in or uploads may break if Google changes things. Files you upload go to Google's NotebookLM service. Your original recordings stay untouched.
-
-Code, screenshots and setup: https://github.com/Edyx0/voiceNotebook
-
-If you use NotebookLM for lectures, do you keep a notebook per week or one for the whole course? I'd like to hear where this workflow falls short.
+It uses the unofficial notebooklm-py client. Uploads go to Google's NotebookLM service, and Google changes can break sign-in or uploads.
 
 ## r/macapps
 
-**Title:** [Free, open source] voiceNotebook: organize Voice Memos by class and send lectures to NotebookLM
+**Title:** [OS] voiceNotebook: sort Voice Memos by class and upload them to NotebookLM
 
 **Body:**
 
-I'm the developer of voiceNotebook, a Mac app for people who record lectures and use NotebookLM to study.
+**voiceNotebook: upload lecture recordings to NotebookLM by class and week.**
 
-It reads Apple Voice Memos or a folder you choose, matches recordings against your timetable, and shows them by course and semester week. You can listen locally, review uncertain matches, and upload to weekly NotebookLM notebooks. It also supports an all-weeks notebook for each course.
+I'm the developer. It's free and open source.
 
-The timetable can come from a photo: Apple Vision reads it on your Mac, then you edit and save the result. You can add lecture images through Files or the system Photos picker and review them before upload.
+**Problem:** Lecture recordings need sorting before they can be useful in NotebookLM. Give voiceNotebook your timetable and a Voice Memos library or audio folder. It matches recordings to classes and uploads them to the right weekly notebook. Originals stay untouched.
+
+**Comparison:** Compared with Voice Memos plus manual NotebookLM uploads, this adds timetable matching, audio conversion and weekly notebook routing. Voice Memos is still the recorder; this app handles the library and uploads.
+
+**Pricing:** $0, MIT license, no paid tier. Source and screenshots: https://github.com/Edyx0/voiceNotebook
+
+Apple silicon, macOS 26+. Signed and Apple-notarized. Install with:
 
 ```sh
 brew install --cask edyx0/tap/voicenotebook
 ```
 
-The packaged release currently supports Apple silicon and macOS Tahoe 26+. Homebrew installs FFmpeg and the app bundles Python. Source-build instructions are available for other Macs.
+It uses the unofficial notebooklm-py client. Uploaded media goes to Google, and Google changes can break the connection.
 
-Voice Memos access needs Full Disk Access. If you'd rather use exported audio, select a folder instead. Originals are never moved, renamed or deleted.
+## r/opensource: not submitted
 
-It's free under the MIT license. NotebookLM access requires your Google account, and the integration uses the unofficial notebooklm-py client. Uploads go to Google.
+The community's current Rule 3 says: "All AI-generated content is low-effort and ban worthy." An AI-assisted rewrite must not be submitted there as if it complied. Source: https://www.reddit.com/mod/opensource/rules/
 
-Screenshots and source: https://github.com/Edyx0/voiceNotebook
+## Student and study-hacks communities
 
-I'd appreciate feedback on setup and the recording-review screen, especially anything that feels awkward on macOS.
+Use only in communities whose current rules allow the developer to share a free tool. Published in r/studytips after checking Rule 3, which allows tasteful, relevant self-promotion.
 
-## r/opensource
-
-**Title:** voiceNotebook: an open-source macOS lecture library with timetable matching and NotebookLM uploads
+**Title:** Free Mac app: upload lecture recordings to NotebookLM, sorted by class and week
 
 **Body:**
 
-I'm sharing voiceNotebook, an MIT-licensed Mac app I built for organizing recorded lectures and sending them to NotebookLM.
+**Upload lecture recordings to NotebookLM, already sorted by class and week.**
 
-It matches Apple Voice Memos or exported audio to an editable timetable, converts recordings to MP3, and creates or reuses notebooks by course and week. It keeps upload progress so an interrupted session can resume. Ambiguous recording matches need review, and photo uploads always need approval.
+I built voiceNotebook for students who record lectures. It takes recordings from Apple Voice Memos or an audio folder, matches them against your class timetable, and uploads them to the right NotebookLM notebook.
 
-The app uses an AppKit shell with a WKWebView interface, a local Python service, Apple Vision for timetable OCR, and notebooklm-py for the unofficial Google integration. Homebrew manages FFmpeg. The release bundles Python and does not bundle a browser.
+For example, both of your chemistry lectures in week 5 go into the same notebook. You can then use NotebookLM with that week's lecture recordings together.
+
+Choose your recordings, add your timetable, check the matches, and click **Convert & upload**. Your original audio stays untouched. You can enter the timetable yourself or import a photo and correct the result.
+
+It's free and open source. I'm the developer. The packaged app needs an Apple silicon Mac with macOS 26 or newer:
 
 ```sh
 brew install --cask edyx0/tap/voicenotebook
 ```
 
-The first binary release supports Apple silicon on macOS Tahoe 26+. The repo also includes source-build instructions and isolated tests that don't need a real Google account.
+Source, screenshots and setup: https://github.com/Edyx0/voiceNotebook
 
-Local organization and playback happen on your Mac. NotebookLM uploads require a Google account and send the selected media to Google; this isn't an offline AI app. Google can change or break the unofficial integration.
+It uses an unofficial NotebookLM client. Uploads go to Google, and Google changes can break the connection.
 
-Repository: https://github.com/Edyx0/voiceNotebook
+## Short version for an allowed promotion thread
 
-Contributions and bug reports are welcome. Reports about failed sign-in or uploads are particularly useful, but please remove account details, cookies and lecture content from logs.
+**voiceNotebook** is a free Mac app I built to sort lecture recordings into NotebookLM notebooks by course and week. It reads Voice Memos or exported audio, matches it against your timetable, and lets you check uncertain matches. Original recordings stay untouched.
 
-## Short version for a community's promotion thread
+Voice Memos handles recording; NotebookLM handles studying. This handles the sorting and uploads between them. It's MIT-licensed, signed and Apple-notarized.
 
-I built **voiceNotebook**, a free, open-source Mac app that matches lecture recordings to a timetable and uploads them to NotebookLM notebooks by course and week. It reads Voice Memos or exported audio, supports locally recognized timetable photos, and lets you review lecture images before uploading them.
+Apple silicon, macOS 26+: `brew install --cask edyx0/tap/voicenotebook`
 
-Install: `brew install --cask edyx0/tap/voicenotebook`
-
-First binary release: Apple silicon, macOS Tahoe 26+. Uses an unofficial NotebookLM client; uploaded media goes to Google. Originals stay untouched.
+It uses an unofficial NotebookLM client. Uploaded media goes to Google, and Google changes can break the connection.
 
 Source and screenshots: https://github.com/Edyx0/voiceNotebook
+
+## Publication log
+
+- r/notebooklm: published with Discussion flair on November 2, 2026, as u/E-D-X. Verified on the community feed and the post page: https://www.reddit.com/r/notebooklm/comments/1xlxeom/i_made_a_mac_app_to_sort_lecture_recordings_into/
+- r/notebooklm: body edited after feedback to put the upload benefit first, followed by three numbered setup steps. Reddit does not allow changing a published post's title; the original title remains.
+- r/studytips: published and verified on the community feed and post page: https://www.reddit.com/r/studytips/comments/1xlxtfe/free_mac_app_upload_lecture_recordings_to/
+- r/macapps: submitted once to the November 2026 App Pile megathread in the required Problem/Comparison/Pricing format. Reddit showed "Yorum gönderildi" (comment submitted), and the comment was verified under u/E-D-X: https://www.reddit.com/r/macapps/comments/1xks9uj/comment/19s15ogoeiblu/
+- r/opensource: not submitted because Rule 3 prohibits AI-generated content.
+- r/StudentHacks and r/studyhacks: restricted communities; the UI requires moderator approval before posting. No approval request or modmail was sent.
+- r/study: its rules allow app promotion only in the weekly self-promotion megathread. The current search showed inquiries about the missing thread and old posts, not an eligible current weekly thread. No standalone promotion was submitted.
+
+### Submitted MacApps comment
+
+voiceNotebook: upload lecture recordings to NotebookLM by class and week.
+
+I'm the developer. It's free and open source.
+
+Problem: Sorting and uploading lecture recordings by hand. Give voiceNotebook your timetable and a Voice Memos library or audio folder. It matches recordings to classes and uploads them to the right weekly notebook. Originals stay untouched.
+
+Comparison: Compared with Voice Memos plus manual NotebookLM uploads, this adds timetable matching, audio conversion and weekly notebook routing. Voice Memos is still the recorder; this app handles the library and uploads.
+
+Pricing: $0, MIT license, no paid tier. Source and screenshots: https://github.com/Edyx0/voiceNotebook
+
+Apple silicon, macOS 26+. Signed and Apple-notarized. Install: `brew install --cask edyx0/tap/voicenotebook`
+
+It uses the unofficial notebooklm-py client. Uploaded media goes to Google, and Google changes can break the connection.
