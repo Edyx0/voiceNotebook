@@ -14,7 +14,7 @@ export VOICE_NOTEBOOK_VERSION="$VERSION" VOICE_NOTEBOOK_EXTERNAL_FFMPEG=1
 bash mac/build.sh
 "$PYTHON" -m unittest discover -s tests -p test_packaged.py -v
 ditto -c -k --sequesterRsrc --keepParent "$APP" "$ARCHIVE"
-xcrun notarytool submit "$ARCHIVE" --keychain-profile "$PROFILE" --wait
+xcrun notarytool submit "$ARCHIVE" --keychain-profile "$PROFILE" --no-s3-acceleration --wait
 xcrun stapler staple "$APP"
 xcrun stapler validate "$APP"
 spctl --assess --type execute --verbose "$APP"

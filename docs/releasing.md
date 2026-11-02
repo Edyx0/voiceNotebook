@@ -33,7 +33,7 @@ If Apple's service takes too long or the connection stops, inspect `xcrun notary
 1. Commit and push the tested source. Create a matching version tag on that commit.
 2. Create a GitHub Release for that tag. Attach only the final ZIP and its SHA-256 file. Record architecture, OS minimum, FFmpeg dependency, sign-in requirements and relevant limitations in the release notes.
 3. Update `Casks/voicenotebook.rb` in the tap with the version and final archive checksum. Keep the versioned download URL; do not use a mutable latest-download URL or `sha256 :no_check`.
-4. Run `brew style --cask Casks/voicenotebook.rb`, `brew fetch --cask edyx0/tap/voicenotebook`, and an install check with an isolated `--appdir`. Confirm the installed bundle's version, signature, notarization ticket and launch.
-5. Commit and push the tap update. Verify both repositories' remote commits and the public release download before announcing availability.
+4. Commit and push the tap update, then refresh the tapped checkout. Run `brew style --cask edyx0/tap/voicenotebook` and an install check with an isolated `--appdir`. A fully qualified `brew install --cask edyx0/tap/voicenotebook` trusts that specific cask; `brew fetch` alone does not grant initial trust.
+5. Confirm the installed bundle's version, signature, notarization ticket and launch. Verify both repositories' remote commits and the public release download before announcing availability.
 
 The tap intentionally has no `zap` rule: uninstalling must not delete the user's lecture library, account session, timetable or recordings.
