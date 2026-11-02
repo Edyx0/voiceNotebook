@@ -16,6 +16,6 @@ Keep permission requests explicit. Photos must remain optional. Timetable recogn
 
 Use the existing Python modules, browser UI and AppKit shell. No frontend build step is needed. Keep keyboard focus, labels, reduced motion and narrow windows working. Run the signed Mac build when changing native code or packaged assets.
 
-For UI changes, include a screenshot using synthetic data and update the design notes when a shared rule changes. The editable Paper file and current design exports are linked in `docs/design/README.md`.
+For UI changes, include a screenshot using synthetic data and update the README when a shared design rule changes. The editable Paper file and design guidance are linked in the README's "Design and identity" section.
 
 Keep pull requests focused. Explain the user-visible change, how you checked it, and anything you could not verify.

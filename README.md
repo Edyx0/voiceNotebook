@@ -131,7 +131,7 @@ GitHub Actions builds the Mac app and runs the tests. See [CONTRIBUTING.md](CONT
 
 ## Design and identity
 
-The [editable Paper design](https://app.paper.design/file/01M637JE38YF89EG585KJ5PTTV/p-1-0) includes the existing UI reference, redesigned desktop views, permissions, photo review and identity. [Design exports and notes](docs/design/README.md) are included.
+The [editable Paper design](https://app.paper.design/file/01M637JE38YF89EG585KJ5PTTV/p-1-0) includes the existing UI reference, redesigned desktop views, permissions, photo review and identity. Follow [Apple Design](https://developer.apple.com/design/) and the macOS Human Interface Guidelines for native controls, keyboard navigation and accessibility. Keep the interface simple and preserve the voiceNotebook wordmark and supplied palette: graphite `#404040`, silver `#BFBFBF`, white `#FFFFFF`, yellow `#E6E632` and red `#D9302E`.
 
 App icons and wordmarks live in [assets/brand](assets/brand). `mac/Icon.swift` generates the matching native icon bundle. Public screenshots use synthetic lecture data.
 
